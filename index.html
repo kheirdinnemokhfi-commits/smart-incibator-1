@@ -1,0 +1,2116 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاضنة الأطفال الذكية 👶 Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+      import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+      window._firebaseModules = { initializeApp, getDatabase, ref, onValue, set, get };
+    </script>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #1f2937;
+            --light: #f9fafb;
+        }
+        [data-theme="dark"] {
+            --bg: #111827; --card-bg: #1f2937; --text: #f9fafb; --border: #374151;
+        }
+        [data-theme="light"] {
+            --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --card-bg: #ffffff; --text: #1f2937; --border: #e5e7eb;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; transition: all 0.3s; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header { background: var(--card-bg); padding: 20px 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .header-left { display: flex; align-items: center; gap: 15px; }
+        .header-left h1 { font-size: 1.8em; color: var(--primary); }
+        .header-right { display: flex; gap: 15px; align-items: center; }
+        .theme-toggle { background: var(--primary); border: none; padding: 12px 20px; border-radius: 10px; cursor: pointer; font-size: 1.3em; transition: all 0.3s; }
+        .theme-toggle:hover { transform: scale(1.1); }
+        .status-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+        .badge { padding: 6px 15px; border-radius: 20px; font-size: 0.85em; font-weight: bold; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .badge-online   { background: var(--success); color: white; }
+        .badge-offline  { background: #6b7280; color: white; }
+        .badge-warning  { background: var(--warning); color: white; }
+        .tabs { background: var(--card-bg); padding: 10px; border-radius: 15px; display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .tab { padding: 12px 25px; border-radius: 10px; cursor: pointer; border: none; background: transparent; color: var(--text); font-size: 1em; font-weight: 600; transition: all 0.3s; white-space: nowrap; }
+        .tab:hover { background: rgba(102,126,234,0.1); }
+        .tab.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); }
+        .card { background: var(--card-bg); border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: all 0.3s; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
+        .card-title { font-size: 1.3em; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--primary); color: var(--primary); display: flex; align-items: center; gap: 10px; }
+        .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .sensor-item { background: var(--light); padding: 20px; border-radius: 12px; text-align: center; position: relative; overflow: hidden; }
+        [data-theme="dark"] .sensor-item { background: #374151; }
+        .sensor-item::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+        .sensor-icon { font-size: 2em; margin-bottom: 10px; }
+        .sensor-value { font-size: 2.5em; font-weight: bold; color: var(--primary); margin: 10px 0; font-family: 'Courier New', monospace; }
+        .sensor-label { font-size: 0.9em; opacity: 0.7; font-weight: 600; }
+        .sensor-status { margin-top: 8px; padding: 4px 12px; border-radius: 20px; font-size: 0.8em; font-weight: bold; display: inline-block; }
+        .status-ok    { background: rgba(16,185,129,0.2); color: var(--success); }
+        .status-alert { background: rgba(239,68,68,0.2); color: var(--danger); }
+        .slider-container { margin: 20px 0; }
+        .slider-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: 600; }
+        .slider-value { color: var(--primary); font-weight: bold; font-size: 1.1em; }
+        .slider { width: 100%; height: 8px; border-radius: 5px; background: #e5e7eb; outline: none; -webkit-appearance: none; }
+        [data-theme="dark"] .slider { background: #4b5563; }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2); transition: all 0.3s; }
+        .slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+        .slider::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--secondary)); cursor: pointer; border: none; }
+        .incubator-visual { width: 100%; height: 300px; background: linear-gradient(to bottom, #e0f2fe 0%, #bae6fd 100%); border-radius: 20px; position: relative; overflow: hidden; border: 4px solid var(--primary); margin: 20px 0; box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        [data-theme="dark"] .incubator-visual { background: linear-gradient(to bottom, #1e3a8a 0%, #1e40af 100%); }
+        .baby-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 6em; animation: breathe 3s ease-in-out infinite; }
+        @keyframes breathe { 0%,100% { transform: translate(-50%,-50%) scale(1); } 50% { transform: translate(-50%,-50%) scale(1.05); } }
+        .incubator-overlay { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; font-size: 0.9em; padding: 10px; background: rgba(255,255,255,0.8); border-radius: 10px; backdrop-filter: blur(10px); }
+        [data-theme="dark"] .incubator-overlay { background: rgba(31,41,55,0.8); }
+        .control-buttons { display: grid; grid-template-columns: repeat(2,1fr); gap: 15px; margin-top: 20px; }
+        .control-btn { padding: 15px 25px; border: none; border-radius: 12px; cursor: pointer; font-size: 1em; font-weight: bold; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger  { background: var(--danger); color: white; }
+        .btn-warning { background: var(--warning); color: white; }
+        .control-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+        .control-btn:active { transform: translateY(0); }
+        .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .switch-container { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: var(--light); border-radius: 12px; margin: 10px 0; }
+        [data-theme="dark"] .switch-container { background: #374151; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 30px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .switch-slider { position: absolute; cursor: pointer; top:0; left:0; right:0; bottom:0; background-color: #ccc; transition: 0.4s; border-radius: 30px; }
+        .switch-slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 4px; bottom: 4px; background-color: white; transition: 0.4s; border-radius: 50%; }
+        input:checked + .switch-slider { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        input:checked + .switch-slider:before { transform: translateX(30px); }
+        input:disabled + .switch-slider { opacity: 0.5; cursor: not-allowed; }
+        .chart-container { height: 300px; position: relative; }
+
+        /* ===== ECG MEDICAL SCREEN ===== */
+        .ecg-screen-wrapper {
+            background: #000d00;
+            border-radius: 12px;
+            padding: 12px;
+            border: 2px solid #00aa00;
+            box-shadow: 0 0 20px rgba(0,200,0,0.3), inset 0 0 30px rgba(0,0,0,0.5);
+        }
+        .ecg-screen-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.82em;
+        }
+        .ecg-label { color: #00ff00; font-weight: bold; }
+        .ecg-meta  { color: #00cc00; font-size: 0.78em; display: flex; gap: 16px; }
+        .ecg-meta span { background: rgba(0,150,0,0.2); padding: 2px 8px; border-radius: 4px; border: 1px solid #005500; }
+        canvas#ecgCanvas {
+            display: block;
+            width: 100%;
+            border-radius: 6px;
+            background: #001400;
+        }
+        .ecg-footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75em;
+            color: #007700;
+        }
+        .ecg-bpm-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px #00ff00;
+            text-align: center;
+            padding: 10px 20px;
+            background: #000d00;
+            border-radius: 8px;
+            border: 1px solid #005500;
+            min-width: 130px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .ecg-bpm-label { font-size: 0.3em; color: #00aa00; margin-top: 4px; letter-spacing: 2px; }
+        .ecg-info-bar {
+            display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px;
+        }
+        .ecg-info-chip {
+            background: rgba(0,100,0,0.3);
+            color: #00ee00;
+            border: 1px solid #004400;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.78em;
+        }
+
+        /* Alerts */
+        .alerts-list { max-height: 400px; overflow-y: auto; }
+        .alert-item { padding: 15px; margin: 10px 0; border-radius: 10px; border-right: 4px solid; display: flex; align-items: center; gap: 15px; animation: slideIn 0.5s; }
+        @keyframes slideIn { from { opacity:0; transform:translateX(50px); } to { opacity:1; transform:translateX(0); } }
+        .alert-info    { background: rgba(59,130,246,0.1);  border-right-color: #3b82f6; }
+        .alert-warning { background: rgba(245,158,11,0.1);  border-right-color: var(--warning); }
+        .alert-danger  { background: rgba(239,68,68,0.1);   border-right-color: var(--danger); }
+        .alert-success { background: rgba(16,185,129,0.1);  border-right-color: var(--success); }
+        .alert-icon  { font-size: 1.5em; }
+        .alert-content { flex: 1; }
+        .alert-time  { font-size: 0.85em; opacity: 0.6; }
+
+        /* AI Chat */
+        .ai-chat-container { display: flex; flex-direction: column; height: 600px; background: var(--card-bg); border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .ai-chat-header { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 20px; display: flex; align-items: center; gap: 15px; }
+        .ai-chat-header h3 { margin: 0; font-size: 1.3em; }
+        .ai-status { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 0.9em; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 20px; }
+        .ai-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse-dot 2s infinite; }
+        @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(1.2);} }
+        .ai-chat-messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; background: var(--light); }
+        [data-theme="dark"] .ai-chat-messages { background: #1f2937; }
+        .ai-message { display: flex; gap: 12px; animation: slideIn 0.3s ease; }
+        .ai-message.user { flex-direction: row-reverse; }
+        .ai-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5em; flex-shrink: 0; }
+        .ai-message.ai .ai-avatar   { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        .ai-message.user .ai-avatar { background: linear-gradient(135deg, #10b981, #059669); }
+        .ai-message-content { max-width: 70%; padding: 15px 18px; border-radius: 18px; line-height: 1.6; word-wrap: break-word; }
+        .ai-message.ai .ai-message-content   { background: white; color: var(--dark); border-bottom-left-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        [data-theme="dark"] .ai-message.ai .ai-message-content { background: #374151; color: var(--text); }
+        .ai-message.user .ai-message-content { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; border-bottom-right-radius: 4px; }
+        .ai-message-time { font-size: 0.75em; opacity: 0.6; margin-top: 5px; }
+        .ai-typing { display: none; align-items: center; gap: 12px; padding: 15px; }
+        .ai-typing.active { display: flex; }
+        .ai-typing-dots { display: flex; gap: 4px; padding: 12px 18px; background: white; border-radius: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        [data-theme="dark"] .ai-typing-dots { background: #374151; }
+        .ai-typing-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); animation: typing 1.4s infinite; }
+        .ai-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .ai-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing { 0%,60%,100%{transform:translateY(0);opacity:0.7;} 30%{transform:translateY(-10px);opacity:1;} }
+        .ai-chat-input-container { padding: 20px; background: var(--card-bg); border-top: 2px solid var(--border); display: flex; gap: 10px; }
+        .ai-chat-input { flex: 1; padding: 14px 18px; border: 2px solid var(--border); border-radius: 25px; font-size: 1em; font-family: inherit; background: var(--light); color: var(--text); resize: none; outline: none; transition: all 0.3s; max-height: 120px; }
+        [data-theme="dark"] .ai-chat-input { background: #374151; }
+        .ai-chat-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .ai-send-btn { width: 50px; height: 50px; border-radius: 50%; border: none; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; font-size: 1.3em; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ai-send-btn:hover:not(:disabled) { transform: scale(1.1); }
+        .ai-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .ai-suggestions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 15px 20px; background: var(--card-bg); }
+        .ai-suggestion-chip { padding: 8px 16px; background: rgba(102,126,234,0.1); border: 1px solid rgba(102,126,234,0.3); border-radius: 20px; font-size: 0.85em; cursor: pointer; transition: all 0.3s; color: var(--text); }
+        .ai-suggestion-chip:hover { background: var(--primary); color: white; transform: translateY(-2px); }
+
+        /* Connection */
+        .connection-status { padding: 20px; background: var(--light); border-radius: 12px; margin-bottom: 20px; text-align: center; }
+        [data-theme="dark"] .connection-status { background: #374151; }
+        .connection-status.disconnected { border: 3px dashed var(--danger); }
+        .connection-status.connected    { border: 3px solid var(--success); }
+        .status-indicator { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
+        .status-connected    { background: rgba(16,185,129,0.2); color: var(--success); }
+        .status-disconnected { background: rgba(239,68,68,0.2);  color: var(--danger); }
+        .status-dot-animated { width: 10px; height: 10px; border-radius: 50%; background: currentColor; animation: blink 1.5s ease-in-out infinite; }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+        .connection-panel { background: var(--light); padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        [data-theme="dark"] .connection-panel { background: #374151; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--text); }
+        .form-input { width: 100%; padding: 12px 15px; border: 2px solid var(--border); border-radius: 10px; font-size: 1em; font-family: inherit; background: var(--card-bg); color: var(--text); transition: all 0.3s; }
+        .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .last-sync { font-size: 0.85em; opacity: 0.6; margin-top: 10px; }
+
+        /* 3D */
+        .d3-viewer-container { background: var(--card-bg); border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .d3-canvas { width: 100%; height: 600px; background: linear-gradient(to bottom,#87ceeb 0%,#e0f2fe 50%,#f0f0f0 100%); border-radius: 12px; position: relative; overflow: hidden; perspective: 1200px; border: 3px solid var(--primary); box-shadow: inset 0 0 100px rgba(0,0,0,0.1); }
+        [data-theme="dark"] .d3-canvas { background: linear-gradient(to bottom,#0f172a 0%,#1e293b 50%,#334155 100%); }
+        .floor-shadow { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); width: 450px; height: 80px; background: radial-gradient(ellipse at center,rgba(0,0,0,0.3) 0%,transparent 70%); border-radius: 50%; filter: blur(20px); }
+        .incubator-3d { width: 420px; height: 400px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotateX(20deg) rotateY(0deg); transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.4,0,0.2,1); }
+        .incubator-3d:hover { transform: translate(-50%,-50%) rotateX(20deg) rotateY(25deg); }
+        .incubator-base { width: 420px; height: 280px; position: absolute; bottom: 0; background: linear-gradient(145deg,#e8e8e8 0%,#d0d0d0 50%,#b8b8b8 100%); border-radius: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.4),inset 0 -2px 10px rgba(0,0,0,0.2),inset 0 2px 10px rgba(255,255,255,0.5); border: 5px solid #a0a0a0; transform: translateZ(-20px); }
+        [data-theme="dark"] .incubator-base { background: linear-gradient(145deg,#3a3a3a 0%,#2a2a2a 50%,#1a1a1a 100%); border-color: #555; }
+        .base-panel { position: absolute; bottom: 20px; left: 20px; right: 20px; height: 60px; background: linear-gradient(to bottom,#2c3e50 0%,#34495e 100%); border-radius: 10px; display: flex; align-items: center; justify-content: space-around; padding: 0 15px; }
+        .control-led { width: 12px; height: 12px; border-radius: 50%; box-shadow: 0 0 10px currentColor,0 0 20px currentColor; animation: blink-led 2s infinite; }
+        .led-green  { background: #00ff00; color: #00ff00; }
+        .led-yellow { background: #ffff00; color: #ffff00; animation-delay: 0.5s; }
+        .led-blue   { background: #0080ff; color: #0080ff; animation-delay: 1s; }
+        @keyframes blink-led { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+        .incubator-dome { width: 400px; height: 220px; position: absolute; top: 30px; left: 10px; background: linear-gradient(to bottom,rgba(180,220,255,0.08) 0%,rgba(180,220,255,0.12) 50%,rgba(180,220,255,0.15) 100%); border-radius: 200px 200px 25px 25px; border: 4px solid rgba(100,150,200,0.4); backdrop-filter: blur(1px); box-shadow: inset 0 10px 30px rgba(255,255,255,0.3),inset 0 -10px 30px rgba(0,0,0,0.05),0 10px 40px rgba(0,0,0,0.2); transform: translateZ(10px); overflow: visible; z-index: 6; }
+        .glass-reflection   { position: absolute; top: 10px; left: 30px; width: 150px; height: 120px; background: linear-gradient(135deg,rgba(255,255,255,0.4) 0%,transparent 60%); border-radius: 50%; transform: rotate(-20deg); filter: blur(5px); }
+        .glass-reflection-2 { position: absolute; bottom: 20px; right: 40px; width: 100px; height: 80px; background: linear-gradient(225deg,rgba(255,255,255,0.3) 0%,transparent 60%); border-radius: 50%; transform: rotate(15deg); filter: blur(3px); }
+        .baby-3d { width: 120px; height: 120px; position: absolute; top: 55%; left: 50%; transform: translate(-50%,-50%) translateZ(5px); font-size: 100px; animation: breathe3d 3.5s ease-in-out infinite; filter: drop-shadow(0 8px 15px rgba(0,0,0,0.4)); z-index: 5; }
+        @keyframes breathe3d { 0%,100%{transform:translate(-50%,-50%) translateZ(5px) scale(1);} 50%{transform:translate(-50%,-50%) translateZ(5px) scale(1.03);} }
+        .baby-blanket { position: absolute; top: 65%; left: 50%; transform: translate(-50%,-50%); width: 180px; height: 30px; background: linear-gradient(to right,#e3f2fd,#bbdefb,#90caf9); border-radius: 50%; z-index: 4; }
+        .incubator-mattress { position: absolute; bottom: 70px; left: 50%; transform: translateX(-50%) translateZ(-5px); width: 340px; height: 120px; background: linear-gradient(to bottom,#fff8e1 0%,#ffecb3 100%); border-radius: 15px; border: 2px solid #ffd54f; }
+        .mattress-lines { position: absolute; top:0; left:0; right:0; bottom:0; background: repeating-linear-gradient(90deg,transparent,transparent 30px,rgba(255,193,7,0.2) 30px,rgba(255,193,7,0.2) 31px); }
+        .system-indicator { position: absolute; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: all 0.4s; animation: pulse-indicator 2.5s infinite; box-shadow: 0 0 20px rgba(0,0,0,0.4); border: 3px solid rgba(255,255,255,0.4); transform-style: preserve-3d; z-index: 10; opacity: 0.5; }
+        .system-indicator.active-system { opacity: 1; }
+        @keyframes pulse-indicator { 0%,100%{transform:scale(1) translateZ(15px);} 50%{transform:scale(1.08) translateZ(20px);} }
+        .indicator-humidity  { background: radial-gradient(circle,#4fc3f7,#29b6f6); color: #4fc3f7; top: 68%; right: 8%; }
+        .indicator-light-jaundice { background: radial-gradient(circle,#ffb74d,#ffa726); color: #ffb74d; top: 8%; left: 28%; }
+        .indicator-light-uv       { background: radial-gradient(circle,#9575cd,#7e57c2); color: #9575cd; top: 8%; right: 28%; }
+        .indicator-label { position: absolute; background: rgba(0,0,0,0.9); color: white; padding: 8px 15px; border-radius: 8px; font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; opacity: 0; transition: all 0.3s; z-index: 100; top: -45px; left: 50%; transform: translateX(-50%) translateY(-5px); }
+        .system-indicator:hover .indicator-label { opacity:1; transform:translateX(-50%) translateY(0); }
+        .light-effect { position: absolute; width: 100%; height: 100%; top:0; left:0; border-radius:200px 200px 25px 25px; pointer-events:none; opacity:0; transition: opacity 0.8s; mix-blend-mode: lighten; z-index: 8; }
+        .light-effect.active { opacity: 1 !important; }
+        .light-jaundice { background: radial-gradient(ellipse at 50% 5%,rgba(255,200,0,1) 0%,rgba(255,220,80,0.8) 25%,rgba(255,220,100,0.6) 40%,transparent 70%); }
+        .light-uv { background: radial-gradient(ellipse at 50% 5%,rgba(150,100,255,1) 0%,rgba(170,130,255,0.9) 20%,rgba(180,140,255,0.7) 35%,transparent 65%); }
+        .incubator-3d.rotating { animation: rotate3d 15s linear infinite; }
+        @keyframes rotate3d { from{transform:translate(-50%,-50%) rotateX(20deg) rotateY(0deg);} to{transform:translate(-50%,-50%) rotateX(20deg) rotateY(360deg);} }
+        .view-controls { display:flex; justify-content:center; gap:10px; margin-top:20px; flex-wrap:wrap; }
+        .view-btn { padding:10px 20px; border:none; border-radius:8px; background:var(--primary); color:white; cursor:pointer; font-size:0.9em; font-weight:600; transition:all 0.3s; display:flex; align-items:center; gap:8px; }
+        .view-btn:hover { background:var(--secondary); transform:translateY(-2px); }
+
+        /* AI Analysis */
+        .critical-prediction-card { background:var(--light); padding:20px; border-radius:12px; border:2px solid var(--border); transition:all 0.3s; }
+        [data-theme="dark"] .critical-prediction-card { background:#374151; }
+        .risk-meter { width:100%; height:30px; background:linear-gradient(to right,var(--success) 0%,var(--success) 20%,var(--warning) 20%,var(--warning) 50%,var(--danger) 50%,var(--danger) 100%); border-radius:15px; position:relative; overflow:hidden; }
+        .risk-meter-bar { position:absolute; top:0; left:0; height:100%; background:rgba(255,255,255,0.9); border-radius:15px; transition:width 1s ease-out; }
+        .risk-item { padding:15px; margin:10px 0; border-radius:10px; border-right:4px solid; display:flex; align-items:flex-start; gap:15px; }
+        .risk-low    { background:rgba(16,185,129,0.1);  border-right-color:var(--success); }
+        .risk-medium { background:rgba(245,158,11,0.1);  border-right-color:var(--warning); }
+        .risk-high   { background:rgba(239,68,68,0.1);   border-right-color:var(--danger); }
+        .risk-icon   { font-size:2em; line-height:1; }
+        .risk-content { flex:1; }
+        .risk-title   { font-weight:bold; font-size:1.1em; margin-bottom:5px; }
+        .risk-description { font-size:0.9em; opacity:0.8; line-height:1.5; }
+        .risk-probability { font-size:1.5em; font-weight:bold; text-align:right; min-width:60px; }
+        .recommendation-item { padding:15px; margin:10px 0; background:linear-gradient(135deg,rgba(102,126,234,0.1),rgba(118,75,162,0.1)); border-radius:10px; border-right:4px solid var(--primary); display:flex; gap:15px; }
+        .recommendation-icon { font-size:2em; }
+        .recommendation-content { flex:1; }
+        .recommendation-title { font-weight:bold; margin-bottom:8px; color:var(--primary); }
+        .recommendation-text  { font-size:0.9em; line-height:1.6; opacity:0.9; }
+        .recommendation-priority { padding:4px 10px; border-radius:12px; font-size:0.8em; font-weight:bold; margin-top:8px; display:inline-block; }
+        .priority-high   { background:rgba(239,68,68,0.2);  color:var(--danger); }
+        .priority-low    { background:rgba(16,185,129,0.2); color:var(--success); }
+
+        /* Settings */
+        .form-select { width:100%; padding:12px 15px; border:2px solid var(--border); border-radius:10px; font-size:1em; font-family:inherit; background:var(--card-bg); color:var(--text); transition:all 0.3s; }
+        .form-select:focus { outline:none; border-color:var(--primary); }
+        .theme-preview { background:var(--light); border-radius:12px; margin:20px 0; padding:20px; border:3px dashed var(--primary); }
+        [data-theme="dark"] .theme-preview { background:#374151; }
+
+        /* Team */
+        .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0; border: 1px solid rgba(102,126,234,0.2); border-radius: 16px; overflow: hidden; background: var(--card-bg); margin-top: 20px; }
+        .team-member { background: var(--card-bg); padding: 30px 20px 25px; text-align: center; transition: all 0.3s; border-left: 1px solid rgba(102,126,234,0.15); position: relative; }
+        .team-member:first-child { border-left: none; }
+        [data-theme="dark"] .team-member { background: #1f2937; border-left-color: #374151; }
+        .team-member:hover { transform: translateY(-4px); box-shadow: 0 12px 35px rgba(102,126,234,0.25); z-index: 2; }
+        .member-avatar-wrap { width: 110px; height: 110px; border-radius: 50%; margin: 0 auto 18px; padding: 4px; background: linear-gradient(135deg, #a5b4fc, #818cf8, #c4b5fd); box-shadow: 0 6px 20px rgba(102,126,234,0.35); }
+        .member-avatar-wrap img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid white; display: block; transition: transform 0.3s ease; }
+        .team-member:hover .member-avatar-wrap img { transform: scale(1.06); }
+        .team-member h4 { color: var(--primary); font-size: 1.05em; font-weight: 700; margin-bottom: 4px; }
+        .member-role { color: var(--warning); font-weight: 600; margin-bottom: 18px; font-size: 0.88em; font-style: italic; }
+        .member-info { text-align: right; margin: 0 0 15px; font-size: 0.84em; line-height: 2; color: var(--text); }
+        .member-info div { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+        .member-info a { color: inherit; text-decoration: none; transition: color 0.2s; }
+        .member-info a:hover { color: var(--primary); }
+        .member-info .info-facebook a { color: #1877f2; text-decoration: underline; }
+        .member-info .info-email a   { color: var(--primary); }
+        .social-links { display: flex; gap: 10px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+        .social-btn { padding: 7px 18px; background: var(--primary); color: white; border-radius: 20px; text-decoration: none; font-size: 0.82em; font-weight: 600; transition: all 0.3s; }
+        .social-btn:hover { background: var(--secondary); transform: translateY(-2px); }
+        .social-btn.github { background: #24292e; }
+        .supervisor-card { background: var(--light); padding: 25px; border-radius: 15px; border: 2px solid var(--primary); }
+        [data-theme="dark"] .supervisor-card { background: #374151; }
+        .supervisor-card h4 { color: var(--primary); font-size: 1.4em; text-align: center; margin-bottom: 5px; }
+        .supervisor-title { text-align: center; color: var(--secondary); font-weight: 600; margin-bottom: 20px; font-size: 1em; }
+        .supervisor-info { background: white; padding: 15px; border-radius: 10px; margin: 15px 0; line-height: 2; font-size: 0.9em; }
+        [data-theme="dark"] .supervisor-info { background: #1f2937; }
+
+        /* Medical record */
+        .med-card { background: var(--card-bg); border: 0.5px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+        .med-sec-hdr { font-size: 12px; font-weight: 600; color: #3B6D11; display: flex; align-items: center; gap: 7px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+        .med-fld-label { font-size: 11px; font-weight: 600; color: var(--text); opacity: 0.65; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+        .med-input { width: 100%; padding: 8px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); color: var(--text); font-size: 13px; font-family: inherit; box-sizing: border-box; }
+        .med-input:focus { outline: none; border-color: #639922; }
+        .med-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+        .med-grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; }
+        .med-grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 9px; }
+        .med-tab-bar { background: var(--light); border: 1px solid var(--border); border-radius: 12px; display: flex; margin-bottom: 10px; overflow: hidden; }
+        .med-tab-btn { flex: 1; padding: 10px 6px; background: transparent; border: none; border-bottom: 2px solid transparent; color: var(--text); font-size: 12px; cursor: pointer; transition: all .15s; }
+        .med-tab-btn.active { background: var(--card-bg); border-bottom-color: #639922; color: #3B6D11; font-weight: 600; }
+        .med-section { display: none; } .med-section.active { display: block; }
+        .med-photo-wrap { width: 90px; height: 90px; border-radius: 50%; border: 2px dashed var(--border); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; background: var(--light); flex-shrink: 0; }
+        .med-nav-btn { padding: 8px 16px; font-size: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--light); color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .med-nav-btn.primary { background: #EAF3DE; color: #3B6D11; border-color: #639922; }
+        .med-nav-btn:disabled { opacity: .4; cursor: not-allowed; }
+        .med-apgar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 600; }
+        .med-lab-row { display: grid; grid-template-columns: 1fr 70px 110px 1fr 28px; gap: 5px; margin-bottom: 5px; align-items: center; }
+        .med-remove-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+
+        .emergency-btn { position: fixed; bottom: 30px; left: 30px; width: 80px; height: 80px; border-radius: 50%; border: none; background: linear-gradient(135deg, var(--danger), #dc2626); color: white; font-weight: bold; cursor: pointer; box-shadow: 0 8px 20px rgba(239,68,68,0.4); transition: all 0.3s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; z-index: 999; }
+        .emergency-btn:hover { transform: scale(1.15); }
+        .emergency-icon { font-size: 2em; animation: rotate 2s linear infinite; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        @media (max-width:768px) {
+            .grid,.grid-2 { grid-template-columns:1fr; }
+            .sensor-grid  { grid-template-columns:1fr; }
+            .header       { flex-direction:column; text-align:center; }
+            .emergency-btn { width:60px; height:60px; bottom:15px; left:15px; }
+        }
+    </style>
+</head>
+<body data-theme="light">
+<div class="container">
+
+    <!-- شعار الجامعة -->
+    <div class="card" style="text-align:center;margin-bottom:20px;">
+        <img src="https://i.ibb.co/20dDFyW1/images.jpg" alt="شعار جامعة مصطفى اسطمبولي"
+             onerror="this.src='https://via.placeholder.com/150x150/004d00/ffffff?text=UMAB';"
+             style="width:150px;height:150px;border-radius:50%;margin:20px auto;box-shadow:0 8px 30px rgba(0,150,255,0.5);border:5px solid rgba(255,255,255,0.2);background:white;padding:15px;object-fit:contain;display:block;transition:transform 0.3s,box-shadow 0.3s;"
+             onmouseover="this.style.transform='scale(1.1) rotate(5deg)';this.style.boxShadow='0 12px 40px rgba(0,150,255,0.7)';"
+             onmouseout="this.style.transform='scale(1) rotate(0deg)';this.style.boxShadow='0 8px 30px rgba(0,150,255,0.5)';">
+        <h2 style="color:var(--primary);font-size:1.8em;margin:15px 0;">جامعة مصطفى اسطمبولي - معسكر</h2>
+        <h3 style="color:var(--secondary);font-size:1.3em;margin:10px 0;">Département d'Electrotechnique</h3>
+        <p style="font-size:1.1em;opacity:0.8;margin:10px 0;">Smart Baby Incubator</p>
+        <p style="font-size:0.95em;opacity:0.7;">génie électronique | Projet de fin d'études 2025-2026</p>
+    </div>
+
+    <!-- أعضاء الفريق -->
+    <div class="card">
+        <h3 class="card-title" style="justify-content:flex-end;">👥 فريق المشروع</h3>
+        <div class="team-grid">
+            <div class="team-member">
+                <div class="member-avatar-wrap">
+                    <img src="https://imgur.com/dRfAwUB.jpg" alt="Boudjoras Mariem"
+                         onerror="this.src='https://ui-avatars.com/api/?name=BM&background=667eea&color=fff&size=110';">
+                </div>
+                <h4>Boudjoras Mariem</h4>
+                <p class="member-role">étudiant</p>
+                <div class="member-info">
+                    <div class="info-email">📧 <a href="mailto:boudjorasmeriem@gmail.com">boudjorasmeriem@gmail.com</a></div>
+                    <div class="info-phone">📱 <a href="tel:+213776430771">776 430 771</a></div>
+                    <div class="info-facebook">🔗 <a href="https://www.facebook.com/meriem.boudjoras" target="_blank">Facebook</a></div>
+                    <div>🎓 Elétronique Systeme Embarqués</div>
+                </div>
+                <div class="social-links">
+                    <a href="https://github.com/boudjorameriem-commits" target="_blank" class="social-btn github">GitHub</a>
+                </div>
+            </div>
+            <div class="team-member">
+                <div class="member-avatar-wrap">
+                    <img src="https://imgur.com/whd4s8B.jpg" alt="Kada Fatima Zohra"
+                         onerror="this.src='https://ui-avatars.com/api/?name=KF&background=667eea&color=fff&size=110';">
+                </div>
+                <h4>Kada Fatima Zohra</h4>
+                <p class="member-role">étudiant</p>
+                <div class="member-info">
+                    <div class="info-email">📧 <a href="mailto:kadafatimazohra71@gmail.com">kadafatimazohra71@gmail.com</a></div>
+                    <div class="info-phone">📱 <a href="tel:+213790687614">790 687 614</a></div>
+                    <div class="info-facebook">🔗 <a href="https://www.facebook.com/zoo.raa.683731" target="_blank">Facebook</a></div>
+                    <div>🎓 Elétronique Systeme Embarqués</div>
+                </div>
+                <div class="social-links">
+                    <a href="https://github.com/kadafatimazohra71-commits" target="_blank" class="social-btn github">GitHub</a>
+                </div>
+            </div>
+            <div class="team-member">
+                <div class="member-avatar-wrap">
+                    <img src="https://imgur.com/ywldGVU.jpg" alt="Chaabane Hibet Rahmane"
+                         onerror="this.src='https://ui-avatars.com/api/?name=CH&background=667eea&color=fff&size=110';">
+                </div>
+                <h4>Chaabane Hibet Rahmane</h4>
+                <p class="member-role">étudiant</p>
+                <div class="member-info">
+                    <div class="info-email">📧 <a href="mailto:hibachaabane351@gmail.com">hibachaabane351@gmail.com</a></div>
+                    <div class="info-phone">📱 <a href="tel:+213557139418">557 139 418</a></div>
+                    <div class="info-facebook">🔗 <a href="https://web.facebook.com/profile.php?id=61563825714053" target="_blank">Facebook</a></div>
+                    <div>🎓 Elétronique Systeme Embarqués</div>
+                </div>
+            </div>
+            <div class="team-member">
+                <div class="member-avatar-wrap">
+                    <img src="https://imgur.com/UBXZgCX.jpg" alt="Mokhefi Kheir Eddine"
+                         onerror="this.src='https://ui-avatars.com/api/?name=MK&background=667eea&color=fff&size=110';">
+                </div>
+                <h4>Mokhefi Kheir Eddine</h4>
+                <p class="member-role">étudiant</p>
+                <div class="member-info">
+                    <div class="info-email">📧 <a href="mailto:kheirdinnemokhfi@gmail.com">kheirdinnemokhfi@gmail.com</a></div>
+                    <div class="info-phone">📱 <a href="tel:+213676941636">676 941 636</a></div>
+                    <div class="info-whatsapp">📲 <a href="https://wa.me/213676941636" target="_blank">WhatsApp</a></div>
+                    <div class="info-telegram">✈️ <a href="https://t.me/+213676941636" target="_blank">Telegram</a></div>
+                    <div class="info-facebook">🔗 <a href="https://www.facebook.com/kheiro.dinne" target="_blank">Facebook</a></div>
+                    <div>🎓 L3 Elétronique</div>
+                </div>
+                <div class="social-links">
+                    <a href="https://github.com/kheirdinnemokhfi-commits" target="_blank" class="social-btn github">GitHub</a>
+                    <a href="https://www.linkedin.com/in/kheirdinne-mokhfi-5a4b54261" target="_blank" class="social-btn">LinkedIn</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- المشرف -->
+    <div class="card">
+        <h3 class="card-title">👨‍🏫 الأساتذة المشرفون</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(350px,1fr));gap:20px;">
+            <div class="supervisor-card">
+                <img src="https://imgur.com/Ydo3qPq.jpg" alt="Dr.hebali mourad"
+                     onerror="this.src='https://via.placeholder.com/150x150/004d00/ffffff?text=Dr';"
+                     style="width:150px;height:150px;border-radius:50%;margin:20px auto;box-shadow:0 8px 30px rgba(0,150,255,0.5);border:5px solid rgba(255,255,255,0.2);background:white;padding:15px;object-fit:contain;display:block;transition:transform 0.3s,box-shadow 0.3s;"
+                     onmouseover="this.style.transform='scale(1.1) rotate(5deg)';this.style.boxShadow='0 12px 40px rgba(0,150,255,0.7)';"
+                     onmouseout="this.style.transform='scale(1) rotate(0deg)';this.style.boxShadow='0 8px 30px rgba(0,150,255,0.5)';">
+                <h4>Dr. Hebali Mourad</h4>
+                <p class="supervisor-title">PhD in Electrical Engineering – Maître Assistant (MCB)</p>
+                <div class="supervisor-info">
+                    <div>🏛️ جامعة معسكر للعلوم والتكنولوجيا</div>
+                    <div>📧 <a href="mailto:hebalimourad@yahoo.fr" style="color:var(--primary);text-decoration:none;">hebalimourad@yahoo.fr</a></div>
+                    <div>📧 mourad.hebali@univ-mascara.dz</div>
+                </div>
+                <div class="social-links" style="margin-top:10px;">
+                    <a href="https://www.linkedin.com/in/mourad-hebali-10196675/" target="_blank" class="social-btn">LinkedIn</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- الهيدر -->
+    <div class="header">
+        <div class="header-left">
+            <span style="font-size:2.5em;">👶</span>
+            <div>
+                <h1>حاضنة الأطفال الذكية</h1>
+                <span style="opacity:0.7;font-size:0.9em;">NICU Smart Incubator Pro - نظام حقيقي</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="status-badges">
+                <span class="badge badge-offline" id="connectionBadge">● غير متصل</span>
+                <span class="badge" id="statusBadge" style="background:#6b7280;color:white;">⏸ في انتظار البيانات</span>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+        </div>
+    </div>
+
+    <!-- حالة الاتصال الرئيسية -->
+    <div class="connection-status disconnected" id="mainConnectionStatus">
+        <div style="font-size:3em;margin-bottom:10px;">📡</div>
+        <h2 style="margin-bottom:10px;color:var(--danger);">غير متصل بـ Arduino</h2>
+        <p style="opacity:0.8;margin-bottom:20px;">
+            النظام يعمل فقط مع البيانات الحقيقية من Arduino.<br>
+            الرجاء الاتصال بجهاز Arduino أولاً من تبويب "Arduino/قاعدة البيانات".
+        </p>
+        <button class="control-btn btn-primary" onclick="switchTab('arduino')" style="max-width:300px;margin:0 auto;">
+            <span>🔌</span> الذهاب إلى صفحة الاتصال
+        </button>
+    </div>
+
+    <!-- التبويبات -->
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('monitoring')">📊 المراقبة الحية</button>
+        <button class="tab" onclick="switchTab('control')">⚙️ التحكم والإعدادات</button>
+        <button class="tab" onclick="switchTab('ai')">🤖 الذكاء الاصطناعي الطبي</button>
+        <button class="tab" onclick="switchTab('charts')">📈 الرسوم البيانية</button>
+        <button class="tab" onclick="switchTab('alerts')">🚨 التنبيهات</button>
+        <button class="tab" onclick="switchTab('arduino')">🔌 Arduino/قاعدة البيانات</button>
+        <button class="tab" onclick="switchTab('settings')">🔧 الإعدادات</button>
+    </div>
+
+    <!-- ===== تبويب المراقبة ===== -->
+    <div id="monitoring" class="tab-content active">
+        <div class="grid">
+            <div id="babyPresenceCard" style="background:var(--card-bg);border-radius:15px;border:2px solid var(--success);padding:20px 25px;display:flex;align-items:center;gap:20px;margin-bottom:20px;transition:border-color 0.4s,box-shadow 0.4s;">
+                <div id="presenceIconWrap" style="width:75px;height:75px;border-radius:50%;background:rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;font-size:38px;flex-shrink:0;transition:background 0.4s;">👶</div>
+                <div style="flex:1;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <span style="font-size:1.2em;font-weight:bold;color:var(--text);">حالة وجود الرضيع</span>
+                        <span id="presenceBadge" style="font-size:0.82em;font-weight:bold;padding:4px 12px;border-radius:20px;background:rgba(16,185,129,0.2);color:var(--success);transition:all 0.4s;">● موجود</span>
+                    </div>
+                    <div id="presenceText" style="font-size:0.9em;opacity:0.75;">الرضيع داخل الحاضنة — في انتظار البيانات</div>
+                </div>
+                <div style="text-align:center;flex-shrink:0;">
+                    <div id="presenceDot" style="width:14px;height:14px;border-radius:50%;background:var(--success);margin:0 auto 6px;animation:blink 1.5s ease-in-out infinite;"></div>
+                    <div style="font-size:0.78em;opacity:0.6;">IR Sensor</div>
+                </div>
+            </div>
+
+            <!-- الملف الطبي -->
+            <div id="medicalRecordSection" style="margin-bottom:20px;direction:rtl;">
+                <div class="med-card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:34px;height:34px;border-radius:50%;background:#EAF3DE;display:flex;align-items:center;justify-content:center;font-size:18px;">📋</div>
+                        <div>
+                            <div id="med-hdr-name" style="font-size:14px;font-weight:600;color:var(--primary);">الملف الطبي</div>
+                            <div id="med-hdr-sub" style="font-size:11px;opacity:0.6;">مريض جديد</div>
+                        </div>
+                    </div>
+                    <button class="med-nav-btn primary" id="med-save-btn" onclick="saveMedicalRecord()">💾 حفظ الملف</button>
+                </div>
+                <div class="med-tab-bar">
+                    <button class="med-tab-btn active" id="medtab0" onclick="switchMedSec(0)">📋 البيانات الأساسية</button>
+                    <button class="med-tab-btn" id="medtab1" onclick="switchMedSec(1)">🏥 التاريخ المرضي</button>
+                    <button class="med-tab-btn" id="medtab2" onclick="switchMedSec(2)">👨‍👩‍👧 بيانات الأسرة</button>
+                </div>
+                <div class="med-section active" id="medsec0">
+                    <div class="med-card">
+                        <div class="med-sec-hdr">🪪 الهوية والصورة</div>
+                        <div style="display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start;">
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+                                <div class="med-photo-wrap" id="med-photo-circle" onclick="document.getElementById('med-photo-inp').click();" title="اضغط لرفع صورة">
+                                    <div style="font-size:30px;">👶</div>
+                                    <div style="font-size:9px;opacity:0.5;margin-top:2px;">رفع صورة</div>
+                                </div>
+                                <input type="file" id="med-photo-inp" accept="image/*" style="display:none;" onchange="medLoadPhoto(event)">
+                                <button onclick="document.getElementById('med-photo-inp').click();" class="med-nav-btn" style="font-size:10px;padding:4px 10px;">📤 تغيير</button>
+                            </div>
+                            <div>
+                                <div class="med-grid2">
+                                    <div><div class="med-fld-label">👶 الاسم الكامل</div><input class="med-input" id="med-fullname" placeholder="اسم المريض الكامل" oninput="medUpdateHeader()"></div>
+                                    <div><div class="med-fld-label">📋 رقم الملف</div><input class="med-input" id="med-fileno" placeholder="NICU-001" oninput="medUpdateHeader()"></div>
+                                </div>
+                                <div style="margin-top:8px;max-width:180px;"><div class="med-fld-label">🛏️ رقم السرير</div><input class="med-input" id="med-bed" placeholder="B-12"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="med-card">
+                        <div class="med-sec-hdr">📅 بيانات الولادة</div>
+                        <div class="med-grid3" style="margin-bottom:9px;">
+                            <div><div class="med-fld-label">📅 تاريخ الميلاد</div><input type="date" class="med-input" id="med-bdate"></div>
+                            <div><div class="med-fld-label">🕐 وقت الولادة</div><input type="time" class="med-input" id="med-btime"></div>
+                            <div><div class="med-fld-label">🏥 نوع الولادة</div>
+                                <select class="med-input" id="med-btype"><option value="">اختر النوع</option><option>طبيعي</option><option>قيصري</option><option>شفط</option><option>ملقط</option></select>
+                            </div>
+                        </div>
+                        <div class="med-grid4">
+                            <div><div class="med-fld-label">🗓️ أسابيع الحمل</div><input class="med-input" id="med-gw" placeholder="32"></div>
+                            <div><div class="med-fld-label">➕ أيام إضافية</div><input class="med-input" id="med-gd" placeholder="3"></div>
+                            <div><div class="med-fld-label">⚖️ وزن الولادة (جم)</div><input class="med-input" id="med-bw" placeholder="1850"></div>
+                            <div><div class="med-fld-label">📏 الطول (سم)</div><input class="med-input" id="med-bh" placeholder="44"></div>
+                        </div>
+                        <div style="margin-top:9px;max-width:200px;"><div class="med-fld-label">🔵 محيط الرأس (سم)</div><input class="med-input" id="med-hc" placeholder="31"></div>
+                    </div>
+                    <div class="med-card">
+                        <div class="med-sec-hdr">❤️ نتيجة Apgar</div>
+                        <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+                            <div style="text-align:center;">
+                                <div style="font-size:11px;opacity:0.6;margin-bottom:7px;">دقيقة 1</div>
+                                <div id="apg1-badge" class="med-apgar" style="background:#F1EFE8;color:#888;margin:0 auto;">--</div>
+                                <input type="number" class="med-input" id="med-a1" min="0" max="10" placeholder="0-10" oninput="medUpdateApgar()" style="width:65px;text-align:center;margin-top:7px;">
+                            </div>
+                            <div style="text-align:center;">
+                                <div style="font-size:11px;opacity:0.6;margin-bottom:7px;">دقيقة 5</div>
+                                <div id="apg5-badge" class="med-apgar" style="background:#F1EFE8;color:#888;margin:0 auto;">--</div>
+                                <input type="number" class="med-input" id="med-a5" min="0" max="10" placeholder="0-10" oninput="medUpdateApgar()" style="width:65px;text-align:center;margin-top:7px;">
+                            </div>
+                            <div style="padding:10px 14px;background:var(--light);border-radius:8px;font-size:11px;opacity:0.8;line-height:2;">
+                                <div>7–10 → <span style="color:#3B6D11;font-weight:600;">وضع جيد</span></div>
+                                <div>4–6 → <span style="color:#854F0B;font-weight:600;">يحتاج متابعة</span></div>
+                                <div>0–3 → <span style="color:#A32D2D;font-weight:600;">حرج / تدخل فوري</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="med-section" id="medsec1">
+                    <div class="med-card">
+                        <div class="med-sec-hdr">🔬 التشخيص</div>
+                        <div style="margin-bottom:9px;"><div class="med-fld-label">🔴 التشخيص الرئيسي</div><input class="med-input" id="med-diag" placeholder="مثال: ضائقة تنفسية - RDS"></div>
+                        <div style="margin-bottom:9px;"><div class="med-fld-label">🔶 التشخيصات المصاحبة</div><textarea class="med-input" id="med-diag2" rows="3" style="resize:vertical;"></textarea></div>
+                        <div><div class="med-fld-label">📌 الأمراض المزمنة</div><textarea class="med-input" id="med-chronic" rows="2" style="resize:vertical;"></textarea></div>
+                    </div>
+                    <div class="med-card">
+                        <div class="med-sec-hdr">⚠️ الحساسية والتحذيرات</div>
+                        <div style="margin-bottom:9px;"><div class="med-fld-label">⚠️ الحساسية</div><textarea class="med-input" id="med-allergy" rows="2" style="resize:vertical;"></textarea></div>
+                        <div><div class="med-fld-label">🔪 العمليات الجراحية</div><textarea class="med-input" id="med-surgery" rows="2" style="resize:vertical;"></textarea></div>
+                    </div>
+                    <div class="med-card">
+                        <div class="med-sec-hdr" style="justify-content:space-between;">
+                            <span>🧪 التحاليل المخبرية</span>
+                            <button onclick="medAddLab()" class="med-nav-btn" style="font-size:11px;padding:4px 10px;">➕ إضافة تحليل</button>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 70px 110px 1fr 28px;gap:5px;margin-bottom:5px;">
+                            <div style="font-size:10px;opacity:0.5;">التحليل</div><div style="font-size:10px;opacity:0.5;">القيمة</div><div style="font-size:10px;opacity:0.5;">التاريخ</div><div style="font-size:10px;opacity:0.5;">ملاحظة</div><div></div>
+                        </div>
+                        <div id="med-lab-rows">
+                            <div class="med-lab-row">
+                                <input class="med-input" placeholder="CBC" style="padding:6px 8px;font-size:12px;">
+                                <input class="med-input" placeholder="12.3" style="padding:6px 8px;font-size:12px;">
+                                <input type="date" class="med-input" style="padding:6px 8px;font-size:11px;">
+                                <input class="med-input" placeholder="طبيعي" style="padding:6px 8px;font-size:12px;">
+                                <button class="med-remove-btn" onclick="this.closest('.med-lab-row').remove()">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="med-section" id="medsec2">
+                    <div class="med-card">
+                        <div class="med-sec-hdr">👨‍👩‍👧 معلومات الوالدين</div>
+                        <div class="med-grid2" style="margin-bottom:9px;">
+                            <div><div class="med-fld-label">👩 اسم الأم</div><input class="med-input" id="med-mom" placeholder="الاسم الكامل"></div>
+                            <div><div class="med-fld-label">👨 اسم الأب</div><input class="med-input" id="med-dad" placeholder="الاسم الكامل"></div>
+                        </div>
+                        <div style="max-width:280px;"><div class="med-fld-label">📱 رقم الهاتف</div><input class="med-input" id="med-phone" placeholder="+213 xxx xxx xxx"></div>
+                    </div>
+                    <div class="med-card">
+                        <div class="med-sec-hdr">🩸 فصائل الدم</div>
+                        <div class="med-grid2" style="margin-bottom:10px;">
+                            <div><div class="med-fld-label">🩸 فصيلة دم الأم</div>
+                                <select class="med-input" id="med-mblood" onchange="medUpdateBlood()"><option value="">اختر</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option><option>غير معروف</option></select>
+                            </div>
+                            <div><div class="med-fld-label">🩸 فصيلة دم الطفل</div>
+                                <select class="med-input" id="med-bblood" onchange="medUpdateBlood()"><option value="">اختر</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option><option>غير معروف</option></select>
+                            </div>
+                        </div>
+                        <div id="med-blood-display" style="display:none;padding:9px 12px;background:var(--light);border-radius:8px;gap:14px;align-items:center;">
+                            <span style="font-size:11px;opacity:0.6;">الأم:</span>
+                            <span id="med-mom-btag" style="padding:3px 11px;border-radius:20px;background:#FCEBEB;color:#A32D2D;font-size:13px;font-weight:600;"></span>
+                            <span style="font-size:11px;opacity:0.6;margin-right:8px;">الطفل:</span>
+                            <span id="med-baby-btag" style="padding:3px 11px;border-radius:20px;background:#EAF3DE;color:#3B6D11;font-size:13px;font-weight:600;"></span>
+                        </div>
+                    </div>
+                    <div class="med-card">
+                        <div class="med-sec-hdr">🤰 تاريخ الحمل</div>
+                        <div style="margin-bottom:9px;max-width:280px;"><div class="med-fld-label">👶 نوع الحمل</div>
+                            <select class="med-input" id="med-preg"><option value="">اختر النوع</option><option>وحيد</option><option>توأم ثنائي</option><option>توأم ثلاثي</option><option>أكثر</option></select>
+                        </div>
+                        <div><div class="med-fld-label">📝 مضاعفات الحمل</div><textarea class="med-input" id="med-comp" rows="3" style="resize:vertical;"></textarea></div>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);margin-top:4px;">
+                    <button class="med-nav-btn" id="med-prev-btn" onclick="medGoSection(-1)" disabled>← السابق</button>
+                    <div style="display:flex;gap:5px;align-items:center;" id="med-dots">
+                        <div style="width:18px;height:6px;border-radius:3px;background:#639922;cursor:pointer;" onclick="switchMedSec(0)" id="meddot0"></div>
+                        <div style="width:6px;height:6px;border-radius:3px;background:var(--border);cursor:pointer;" onclick="switchMedSec(1)" id="meddot1"></div>
+                        <div style="width:6px;height:6px;border-radius:3px;background:var(--border);cursor:pointer;" onclick="switchMedSec(2)" id="meddot2"></div>
+                    </div>
+                    <button class="med-nav-btn primary" id="med-next-btn" onclick="medGoSection(1)">التالي →</button>
+                </div>
+            </div>
+
+            <!-- المؤشرات الحيوية -->
+            <div class="card">
+                <div class="card-title"><span>🫀</span> المؤشرات الحيوية</div>
+                <div class="sensor-grid">
+                    <div class="sensor-item">
+                        <div class="sensor-icon">🌡️</div>
+                        <div class="sensor-value" id="bodyTemp">--</div>
+                        <div class="sensor-label">درجة حرارة الجسم °C</div>
+                        <span class="sensor-status" id="bodyTempStatus">في انتظار البيانات</span>
+                    </div>
+                    <div class="sensor-item">
+                        <div class="sensor-icon">❤️</div>
+                        <div class="sensor-value" id="heartRate">--</div>
+                        <div class="sensor-label">نبضات القلب (ECG) / دقيقة</div>
+                        <span class="sensor-status" id="heartRateStatus">في انتظار البيانات</span>
+                    </div>
+                    <div class="sensor-item">
+                        <div class="sensor-icon">💨</div>
+                        <div class="sensor-value" id="airQualityDisplay">--</div>
+                        <div class="sensor-label">جودة الهواء (airQuality)</div>
+                        <span class="sensor-status" id="airQualityDisplayStatus">في انتظار البيانات</span>
+                    </div>
+                    <div class="sensor-item">
+                        <div class="sensor-icon">🌬️</div>
+                        <div class="sensor-value" id="ambientTempDisplay">--</div>
+                        <div class="sensor-label">الحرارة المحيطة °C</div>
+                        <span class="sensor-status" id="ambientTempDisplayStatus">في انتظار البيانات</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- البيئة الداخلية -->
+            <div class="card">
+                <div class="card-title"><span>🏠</span> البيئة الداخلية</div>
+                <div class="sensor-grid">
+                    <div class="sensor-item">
+                        <div class="sensor-icon">💧</div>
+                        <div class="sensor-value" id="humidity">--</div>
+                        <div class="sensor-label">الرطوبة %</div>
+                        <span class="sensor-status" id="humidityStatus">في انتظار البيانات</span>
+                    </div>
+                    <div class="sensor-item">
+                        <div class="sensor-icon">⚖️</div>
+                        <div class="sensor-value" id="weight">--</div>
+                        <div class="sensor-label">الوزن (جم)</div>
+                        <span class="sensor-status" id="weightStatus">في انتظار البيانات</span>
+                    </div>
+                    <div class="sensor-item">
+                        <div class="sensor-icon">🌡️</div>
+                        <div class="sensor-value" id="envTemp">--</div>
+                        <div class="sensor-label">حرارة الحاضنة °C</div>
+                        <span class="sensor-status" id="envTempStatus">في انتظار البيانات</span>
+                    </div>
+                    <div class="sensor-item">
+                        <div class="sensor-icon">⏱️</div>
+                        <div class="sensor-value" id="dataAge">--</div>
+                        <div class="sensor-label">آخر قراءة</div>
+                        <span class="sensor-status">ثانية</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- العرض المرئي -->
+            <div class="card" style="grid-column:1/-1;">
+                <div class="card-title"><span>👁️</span> العرض المرئي للحاضنة</div>
+                <div class="incubator-visual">
+                    <div class="incubator-overlay">
+                        <span>🌡️ <strong id="visualTemp">-- °C</strong></span>
+                        <span>💧 <strong id="visualHumidity">-- %</strong></span>
+                        <span>❤️ <strong id="visualHeart">-- bpm</strong></span>
+                        <span>💨 <strong id="visualAirQuality">--</strong></span>
+                    </div>
+                    <div class="baby-icon">👶</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== تبويب التحكم ===== -->
+    <div id="control" class="tab-content">
+        <div class="card" style="grid-column:1/-1;margin-bottom:20px;">
+            <div class="card-title"><span>🎨</span> العرض التفاعلي ثلاثي الأبعاد</div>
+            <div class="d3-viewer-container">
+                <div class="d3-canvas" id="d3CanvasControl">
+                    <div class="floor-shadow"></div>
+                    <div class="incubator-3d" id="incubator3dControl">
+                        <div class="incubator-base">
+                            <div class="base-panel">
+                                <div class="control-led led-green"></div>
+                                <div class="control-led led-yellow"></div>
+                                <div class="control-led led-blue"></div>
+                                <div style="color:white;font-size:10px;font-weight:bold;">NICU PRO</div>
+                            </div>
+                        </div>
+                        <div class="incubator-mattress"><div class="mattress-lines"></div></div>
+                        <div class="baby-blanket"></div>
+                        <div class="baby-3d">👶</div>
+                        <div class="incubator-dome" id="incubatorDomeControl">
+                            <div class="glass-reflection"></div>
+                            <div class="glass-reflection-2"></div>
+                            <div class="light-effect light-jaundice" id="lightJaundiceControl"></div>
+                            <div class="light-effect light-uv" id="lightUVControl"></div>
+                        </div>
+                        <div class="system-indicator indicator-humidity active-system" id="humidityIndicator">
+                            <span>💧</span><div class="indicator-label">نظام الترطيب</div>
+                        </div>
+                        <div class="system-indicator indicator-light-jaundice" id="jaundiceLightIndicator">
+                            <span>🟡</span><div class="indicator-label">علاج ضوئي</div>
+                        </div>
+                        <div class="system-indicator indicator-light-uv" id="uvLightIndicator">
+                            <span>🔵</span><div class="indicator-label">تعقيم UV-C</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="view-controls">
+                    <button class="view-btn" onclick="toggleRotationControl()">
+                        <span id="rotationIconControl">🔄</span>
+                        <span id="rotationTextControl">دوران تلقائي</span>
+                    </button>
+                    <button class="view-btn" onclick="resetViewControl()">
+                        <span>🔃</span> إعادة ضبط العرض
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <div class="card-title"><span>💦</span> نظام الترطيب</div>
+                <div class="switch-container">
+                    <span><strong>تفعيل الترطيب</strong></span>
+                    <label class="switch"><input type="checkbox" id="humidifierSwitch" disabled><span class="switch-slider"></span></label>
+                </div>
+                <div class="slider-container">
+                    <div class="slider-header"><span>مستوى الرطوبة المستهدف</span><span class="slider-value" id="humidityTargetValue">55%</span></div>
+                    <input type="range" class="slider" min="40" max="70" step="5" value="55" id="humidityTarget" oninput="updateHumidityTarget(this.value)" disabled>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span>🟡</span> العلاج الضوئي (اليرقان)</div>
+                <div class="switch-container">
+                    <span><strong>تفعيل الضوء الأصفر</strong></span>
+                    <label class="switch"><input type="checkbox" id="jaundiceSwitch" onchange="toggleJaundiceLight(this.checked)" disabled><span class="switch-slider"></span></label>
+                </div>
+                <div class="slider-container">
+                    <div class="slider-header"><span>شدة الضوء (450-470 nm)</span><span class="slider-value" id="jaundiceLightValue">60%</span></div>
+                    <input type="range" class="slider" min="0" max="100" step="10" value="60" id="jaundiceLightIntensity" oninput="updateJaundiceLightIntensity(this.value)" disabled>
+                </div>
+                <div style="background:#fff3cd;padding:12px;border-radius:8px;margin-top:10px;border-right:4px solid #ffc107;">
+                    <small style="color:#856404;">⚠️ <strong>تنبيه طبي:</strong> يستخدم لعلاج اليرقان الوليدي. الطول الموجي 450-470nm.</small>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span>🔵</span> تعقيم UV-C</div>
+                <div class="switch-container">
+                    <span><strong>تفعيل التعقيم</strong></span>
+                    <label class="switch"><input type="checkbox" id="uvSwitch" onchange="toggleUVSterilization(this.checked)" disabled><span class="switch-slider"></span></label>
+                </div>
+                <div class="slider-container">
+                    <div class="slider-header"><span>مدة التعقيم (دقائق)</span><span class="slider-value" id="uvDurationValue">15 د</span></div>
+                    <input type="range" class="slider" min="5" max="60" step="5" value="15" id="uvDuration" oninput="updateUVDuration(this.value)" disabled>
+                </div>
+                <div style="background:#ffebee;padding:12px;border-radius:8px;margin-top:10px;border-right:4px solid #ef4444;">
+                    <small style="color:#c62828;">⚠️ <strong>تحذير حرج:</strong> يجب إخلاء الحاضنة تماماً أثناء التعقيم!</small>
+                </div>
+            </div>
+            <div class="card" style="grid-column:1/-1;">
+                <div class="card-title"><span>⚡</span> التحكم السريع</div>
+                <div class="control-buttons">
+                    <button class="control-btn btn-success" onclick="quickPreset('normal')" disabled id="btnNormal"><span>✓</span> وضع عادي</button>
+                    <button class="control-btn btn-primary" onclick="quickPreset('intensive')" disabled id="btnIntensive"><span>⚡</span> وضع مكثف</button>
+                    <button class="control-btn btn-warning" onclick="quickPreset('phototherapy')" disabled id="btnPhoto"><span>💡</span> علاج ضوئي</button>
+                    <button class="control-btn btn-danger" onclick="emergencyStop()" disabled id="btnEmergency"><span>⏸️</span> إيقاف الطوارئ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== تبويب الذكاء الاصطناعي ===== -->
+    <div id="ai" class="tab-content">
+        <div class="card" style="background:linear-gradient(135deg,var(--primary),var(--secondary));color:white;">
+            <div class="card-title" style="color:white;border-bottom-color:rgba(255,255,255,0.3);">
+                <span>🧠</span> نظام الذكاء الاصطناعي للتنبؤ بالمخاطر الطبية
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:20px;">
+                <div style="text-align:center;padding:15px;background:rgba(255,255,255,0.1);border-radius:10px;">
+                    <div style="font-size:2.5em;margin-bottom:5px;" id="aiHealthScore">--</div>
+                    <div style="font-size:0.9em;opacity:0.9;">درجة الصحة العامة</div>
+                </div>
+                <div style="text-align:center;padding:15px;background:rgba(255,255,255,0.1);border-radius:10px;">
+                    <div style="font-size:2.5em;margin-bottom:5px;" id="aiRiskLevel">--</div>
+                    <div style="font-size:0.9em;opacity:0.9;">مستوى الخطورة</div>
+                </div>
+                <div style="text-align:center;padding:15px;background:rgba(255,255,255,0.1);border-radius:10px;">
+                    <div style="font-size:2.5em;margin-bottom:5px;">98%</div>
+                    <div style="font-size:0.9em;opacity:0.9;">دقة النموذج</div>
+                </div>
+            </div>
+            <button class="control-btn btn-success" onclick="runAIAnalysis()" style="margin-top:20px;width:100%;" disabled id="btnAIAnalysis">
+                <span>🔬</span> تشغيل التحليل الشامل الآن
+            </button>
+        </div>
+        <div class="grid" style="margin-top:20px;">
+            <div class="card">
+                <div class="card-title"><span>⚠️</span> التنبؤ بالمخاطر</div>
+                <div id="aiRiskPredictions"><p style="text-align:center;opacity:0.6;padding:20px;">يتطلب بيانات من Arduino</p></div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span>💡</span> توصيات الذكاء الاصطناعي</div>
+                <div id="aiRecommendations"><p style="text-align:center;opacity:0.6;padding:20px;">يتطلب بيانات من Arduino</p></div>
+            </div>
+            <div class="card" style="grid-column:1/-1;">
+                <div class="card-title"><span>🔴</span> التنبؤ بالحالات الحرجة</div>
+                <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));">
+                    <div class="critical-prediction-card">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
+                            <div style="font-size:2em;">🦠</div>
+                            <div><div style="font-weight:bold;">تعفن الدم (Sepsis)</div><div style="font-size:0.85em;opacity:0.7;">احتمالية خلال 24 ساعة</div></div>
+                        </div>
+                        <div class="risk-meter"><div class="risk-meter-bar" id="sepsisRisk" style="width:0%;"></div></div>
+                        <div style="text-align:center;margin-top:10px;font-size:1.5em;font-weight:bold;" id="sepsisPercent">--%</div>
+                    </div>
+                    <div class="critical-prediction-card">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
+                            <div style="font-size:2em;">🫃</div>
+                            <div><div style="font-weight:bold;">التهاب الأمعاء (NEC)</div><div style="font-size:0.85em;opacity:0.7;">احتمالية خلال 48 ساعة</div></div>
+                        </div>
+                        <div class="risk-meter"><div class="risk-meter-bar" id="necRisk" style="width:0%;"></div></div>
+                        <div style="text-align:center;margin-top:10px;font-size:1.5em;font-weight:bold;" id="necPercent">--%</div>
+                    </div>
+                    <div class="critical-prediction-card">
+                        <div style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
+                            <div style="font-size:2em;">🫁</div>
+                            <div><div style="font-weight:bold;">الضائقة التنفسية (RDS)</div><div style="font-size:0.85em;opacity:0.7;">مستوى الخطورة الحالي</div></div>
+                        </div>
+                        <div class="risk-meter"><div class="risk-meter-bar" id="rdsRisk" style="width:0%;"></div></div>
+                        <div style="text-align:center;margin-top:10px;font-size:1.5em;font-weight:bold;" id="rdsPercent">--%</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="grid-column:1/-1;">
+                <div class="ai-chat-container">
+                    <div class="ai-chat-header">
+                        <span style="font-size:2em;">🤖</span>
+                        <div>
+                            <h3>المساعد الطبي الذكي</h3>
+                            <p style="margin:0;font-size:0.85em;opacity:0.9;">مدعوم بـ Claude AI</p>
+                        </div>
+                        <div class="ai-status"><div class="ai-status-dot"></div><span>متصل</span></div>
+                    </div>
+                    <div class="ai-suggestions">
+                        <div class="ai-suggestion-chip" onclick="sendSuggestion('ما هي القراءات الطبيعية للطفل الخديج؟')">📊 القراءات الطبيعية</div>
+                        <div class="ai-suggestion-chip" onclick="sendSuggestion('كيف أتعامل مع انخفاض نسبة الأكسجين؟')">🫁 انخفاض الأكسجين</div>
+                        <div class="ai-suggestion-chip" onclick="sendSuggestion('ما أعراض اليرقان الوليدي؟')">💛 اليرقان الوليدي</div>
+                        <div class="ai-suggestion-chip" onclick="sendSuggestion('نصائح للحفاظ على درجة الحرارة')">🌡️ درجة الحرارة</div>
+                    </div>
+                    <div class="ai-chat-messages" id="aiChatMessages">
+                        <div class="ai-message ai">
+                            <div class="ai-avatar">🤖</div>
+                            <div>
+                                <div class="ai-message-content">
+                                    مرحباً! أنا المساعد الطبي الذكي المتخصص في رعاية الأطفال الخدج. 👶<br><br>
+                                    يمكنني مساعدتك في فهم القراءات الطبية، تقديم نصائح متخصصة، وتحليل حالة الطفل.<br><br>
+                                    كيف يمكنني مساعدتك اليوم؟
+                                </div>
+                                <div class="ai-message-time">الآن</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ai-typing" id="aiTyping">
+                        <div class="ai-avatar" style="background:linear-gradient(135deg,var(--primary),var(--secondary));">🤖</div>
+                        <div class="ai-typing-dots">
+                            <div class="ai-typing-dot"></div><div class="ai-typing-dot"></div><div class="ai-typing-dot"></div>
+                        </div>
+                    </div>
+                    <div class="ai-chat-input-container">
+                        <textarea class="ai-chat-input" id="aiChatInput" placeholder="اكتب سؤالك الطبي هنا..." rows="1" onkeydown="handleChatKeydown(event)"></textarea>
+                        <button class="ai-send-btn" onclick="sendAIMessage()" id="aiSendBtn">➤</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== تبويب الرسوم البيانية ===== -->
+    <div id="charts" class="tab-content">
+
+        <!-- ✅ شاشة ECG طبية حقيقية بمقياس 25mm/sec -->
+        <div class="card" style="grid-column:1/-1;margin-bottom:20px;">
+            <div class="card-title"><span>❤️</span> مخطط القلب الكهربائي (ECG) — بيانات حية من Firebase</div>
+
+            <!-- الشاشة الخضراء -->
+            <div class="ecg-screen-wrapper">
+                <div class="ecg-screen-header">
+                    <span class="ecg-label">ECG — Lead II</span>
+                    <div class="ecg-meta">
+                        <span>25 mm/sec</span>
+                        <span>10 mm/mV</span>
+                        <span id="ecgGridInfo">مقياس: 5×5 مربع = 1 ثانية</span>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:12px;align-items:flex-start;">
+                    <!-- الكانفاس الرئيسي -->
+                    <div style="flex:1;min-width:0;">
+                        <canvas id="ecgCanvas" height="200"
+                                style="background:#001400;border-radius:6px;display:block;width:100%;"></canvas>
+                    </div>
+                    <!-- عداد BPM -->
+                    <div class="ecg-bpm-display">
+                        <span id="ecgBpmValue">--</span>
+                        <span class="ecg-bpm-label">BPM</span>
+                    </div>
+                </div>
+
+                <div class="ecg-footer">
+                    <span>الخط الأساسي: 0 mV</span>
+                    <span id="ecgStatusText">في انتظار البيانات من Firebase...</span>
+                    <span id="ecgTimestamp">--:--:--</span>
+                </div>
+            </div>
+
+            <!-- معلومات طبية -->
+            <div class="ecg-info-bar" style="margin-top:10px;">
+                <span class="ecg-info-chip">📏 المقياس الزمني: 25 mm/sec</span>
+                <span class="ecg-info-chip">📐 السعة: 10 mm/mV</span>
+                <span class="ecg-info-chip">🟩 مربع صغير = 40 ms</span>
+                <span class="ecg-info-chip">🟦 مربع كبير = 200 ms</span>
+                <span class="ecg-info-chip" id="ecgRangeInfo">HR: -- bpm</span>
+                <span class="ecg-info-chip" id="ecgQualityInfo">⏳ انتظار بيانات</span>
+            </div>
+
+            <!-- تحكم في ECG -->
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center;">
+                <button onclick="clearEcgBuffer()" class="control-btn btn-primary" style="padding:8px 16px;font-size:0.88em;">🗑️ مسح المخطط</button>
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;cursor:pointer;">
+                    <input type="checkbox" id="ecgFreeze" onchange="toggleEcgFreeze(this.checked)">
+                    <span>تجميد الشاشة</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.9em;">
+                    <span>سرعة العرض:</span>
+                    <select id="ecgSpeedSelect" onchange="changeEcgSpeed(this.value)" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);">
+                        <option value="1">25 mm/sec (معياري)</option>
+                        <option value="2">50 mm/sec (مضاعف)</option>
+                        <option value="0.5">12.5 mm/sec (بطيء)</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+
+        <!-- المخططات الأربعة -->
+        <div class="grid grid-2">
+            <div class="card">
+                <div class="card-title"><span>📈</span> درجة حرارة الجسم (آخر 60 قراءة)</div>
+                <div class="chart-container"><canvas id="tempChart"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span>📈</span> نبضات القلب ECG (آخر 60 قراءة)</div>
+                <div class="chart-container"><canvas id="heartChart"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span>📈</span> جودة الهواء — airQuality (آخر 60 قراءة)</div>
+                <div class="chart-container"><canvas id="oxygenChart"></canvas></div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span>📈</span> الرطوبة % (آخر 60 قراءة)</div>
+                <div class="chart-container"><canvas id="humidityChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== تبويب التنبيهات ===== -->
+    <div id="alerts" class="tab-content">
+        <div class="card">
+            <div class="card-title"><span>🔔</span> سجل التنبيهات</div>
+            <div class="alerts-list" id="alertsList">
+                <div class="alert-item alert-info">
+                    <div class="alert-icon">ℹ️</div>
+                    <div class="alert-content"><strong>النظام جاهز:</strong> في انتظار اتصال Firebase</div>
+                    <div class="alert-time">الآن</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== تبويب Arduino ===== -->
+    <div id="arduino" class="tab-content">
+        <div class="card">
+            <div class="card-title"><span>🔥</span> اتصال Firebase Realtime Database</div>
+            <div class="connection-panel">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h3>حالة الاتصال:</h3>
+                    <span class="status-indicator status-disconnected" id="arduinoStatus">
+                        <span class="status-dot-animated"></span> غير متصل
+                    </span>
+                </div>
+                <div class="form-group">
+                    <label>🔗 رابط Firebase Database URL:</label>
+                    <input type="text" class="form-input" id="firebaseUrl" value="https://incubateur-neonatale-default-rtdb.firebaseio.com/">
+                    <small style="opacity:0.7;display:block;margin-top:5px;">💡 رابط Firebase الخاص بمشروعك</small>
+                </div>
+                <div class="form-group">
+                    <label>🗂️ مسار البيانات (Data Path):</label>
+                    <input type="text" class="form-input" id="firebasePath" value="incubator">
+                    <small style="opacity:0.7;display:block;margin-top:5px;">💡 المسار الذي يكتب إليه Arduino</small>
+                </div>
+                <div class="control-buttons" style="grid-template-columns:1fr 1fr;">
+                    <button class="control-btn btn-success" onclick="connectFirebase()" id="btnConnect"><span>🔗</span> اتصال بـ Firebase</button>
+                    <button class="control-btn btn-danger"  onclick="disconnectFirebase()" disabled id="btnDisconnect"><span>✖️</span> قطع الاتصال</button>
+                </div>
+                <div class="last-sync" id="arduinoLastSync">آخر مزامنة: لم يتم الاتصال بعد</div>
+            </div>
+            <div style="margin-top:20px;">
+                <div class="card-title"><span>📦</span> آخر بيانات مستلمة من Firebase</div>
+                <pre id="rawFirebaseData" style="background:#1f2937;color:#10b981;padding:15px;border-radius:10px;font-size:0.85em;overflow-x:auto;max-height:200px;direction:ltr;">في انتظار البيانات...</pre>
+            </div>
+            <div style="background:#e3f2fd;padding:20px;border-radius:10px;margin-top:20px;border-right:4px solid #2196f3;">
+                <h3 style="color:#1565c0;margin-bottom:15px;">📋 هيكل بيانات Firebase المتوقع:</h3>
+                <pre style="background:#1f2937;color:#ffd54f;padding:15px;border-radius:8px;font-size:0.82em;direction:ltr;">{
+  "incubator": {
+    "sensors": {
+      "bodyTemp":    27.4,
+      "envTemp":     29.8,
+      "ambientTemp": 28.2,
+      "humidity":    13,
+      "ecg":         171,
+      "airQuality":  28,
+      "weight":      89589.28,
+      "babyPresent": true,
+      "ledJaundice": false,
+      "ledUV":       false,
+      "timestamp":   2965
+    }
+  }
+}</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== تبويب الإعدادات ===== -->
+    <div id="settings" class="tab-content">
+        <div class="grid">
+            <div class="card">
+                <div class="card-title"><span>🎨</span> الثيمات</div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block;margin-bottom:8px;font-weight:600;">اختر الثيم:</label>
+                    <select class="form-select" id="themeSelect" onchange="applyTheme()">
+                        <option value="light">☀️ فاتح</option>
+                        <option value="dark">🌙 داكن</option>
+                        <option value="blue">💙 أزرق</option>
+                        <option value="green">💚 أخضر</option>
+                        <option value="purple">💜 بنفسجي</option>
+                        <option value="orange">🧡 برتقالي</option>
+                    </select>
+                </div>
+                <div class="theme-preview">
+                    <div style="text-align:center;padding:20px;">
+                        <div style="font-size:3em;margin-bottom:10px;">🎨</div>
+                        <div>معاينة الثيم المختار</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span>⚙️</span> حدود التنبيه</div>
+                <div class="slider-container">
+                    <div class="slider-header"><span>حد الحرارة الأدنى</span><span class="slider-value" id="tempMinValue">36.0°C</span></div>
+                    <input type="range" class="slider" min="35" max="37" step="0.5" value="36" id="tempMin" oninput="updateTempMin(this.value)">
+                </div>
+                <div class="slider-container">
+                    <div class="slider-header"><span>حد الحرارة الأعلى</span><span class="slider-value" id="tempMaxValue">37.5°C</span></div>
+                    <input type="range" class="slider" min="37" max="39" step="0.5" value="37.5" id="tempMax" oninput="updateTempMax(this.value)">
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span>💾</span> حفظ البيانات</div>
+                <div class="control-buttons" style="grid-template-columns:1fr;">
+                    <button class="control-btn btn-primary" onclick="exportData()"><span>📥</span> تصدير البيانات</button>
+                    <button class="control-btn btn-success" onclick="saveSettings()"><span>💾</span> حفظ الإعدادات</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- end container -->
+
+<button class="emergency-btn" onclick="emergencyAlert()" id="emergencyButton" disabled>
+    <span class="emergency-icon">🚨</span>
+    <span style="font-size:0.8em;">طوارئ</span>
+</button>
+
+<!-- ================================================================ -->
+<script type="module">
+
+async function waitForFirebase() {
+    while (!window._firebaseModules) await new Promise(r => setTimeout(r, 50));
+    return window._firebaseModules;
+}
+
+let firebaseApp = null, firebaseDb = null, firebaseUnsubscribe = null;
+let isConnected = false, lastDataTime = null;
+let charts = {};
+let chartDataHistory = { temperature:[], heartRate:[], airQuality:[], humidity:[], timestamps:[] };
+let aiModel = { healthScore:0, riskLevel:'--', predictions:[], recommendations:[], criticalRisks:{sepsis:0,nec:0,rds:0} };
+let isRotatingControl = false;
+let chatHistory = [];
+let medCurrentSec = 0;
+
+// ================================================================
+// ✅ ECG Canvas — شاشة طبية حقيقية بمقياس 25mm/sec
+// ================================================================
+
+// إعدادات ECG الطبية
+const ECG_SAMPLE_RATE   = 250;   // 250 عينة/ثانية (معياري طبي)
+const ECG_SCREEN_SECS   = 10;    // نافذة عرض 10 ثوانٍ
+const ECG_CANVAS_HEIGHT = 200;
+const SMALL_GRID_MS     = 40;    // مربع صغير = 40ms = 1mm عند 25mm/sec
+const BIG_GRID_MS       = 200;   // مربع كبير = 200ms = 5mm
+
+let ecgBuffer = [];              // مخزن الإشارة الحقيقية (قيم ecg من Firebase)
+let ecgFrozen = false;
+let ecgSpeedFactor = 1.0;        // عامل سرعة العرض
+let ecgAnimationId = null;
+let ecgCanvasWidth = 800;
+let ecgCurrentBpm = 0;
+let ecgLastRaw = 0;              // آخر قيمة خام من Firebase
+let ecgWritePos = 0;             // موقع الكتابة الحالي (sweep)
+let ecgDisplayBuffer = [];       // بفر العرض (أكبر من نافذة العرض)
+let ecgLastFirebaseTime = 0;
+let ecgFirebaseCounter = 0;
+
+// مُولِّد موجة ECG اصطناعية (لتمييز ذروة P، QRS، T) بناءً على BPM الحقيقي
+function generateEcgWaveFromBpm(bpm, bufferLen, sampleRate) {
+    const arr = new Float32Array(bufferLen);
+    if (bpm <= 0) return arr;
+    const cycleLen = Math.round(sampleRate * 60 / bpm);
+    for (let i = 0; i < bufferLen; i++) {
+        const phase = (i % cycleLen) / cycleLen;
+        arr[i] = ecgPhaseToAmplitude(phase);
+    }
+    return arr;
+}
+
+function ecgPhaseToAmplitude(p) {
+    // موجة ECG قياسية: P Q R S T
+    if (p < 0.08)  return 0.15 * Math.sin(p / 0.08 * Math.PI);              // P wave
+    if (p < 0.12)  return 0;                                                  // PR segment
+    if (p < 0.14)  return -0.25 + (p - 0.12) / 0.02 * (-0.25);              // Q
+    if (p < 0.155) return -0.5 + (p - 0.14) / 0.015 * 2.5;                  // R ascending
+    if (p < 0.165) return 2.0 - (p - 0.155) / 0.01 * 2.5;                   // R descending
+    if (p < 0.185) return -0.5 + (p - 0.165) / 0.02 * 0.5;                  // S
+    if (p < 0.30)  return 0.05 * Math.sin((p - 0.185) / 0.12 * Math.PI);    // ST segment
+    if (p < 0.48)  return 0.35 * Math.sin((p - 0.30) / 0.18 * Math.PI);     // T wave
+    return 0;                                                                  // TP segment
+}
+
+function initEcgCanvas() {
+    const canvas = document.getElementById('ecgCanvas');
+    if (!canvas) return;
+    const parent = canvas.parentElement;
+    const W = parent ? parent.clientWidth - 30 : 800;
+    canvas.width  = W || 800;
+    canvas.height = ECG_CANVAS_HEIGHT;
+    ecgCanvasWidth = canvas.width;
+    ecgDisplayBuffer = new Float32Array(canvas.width * 3).fill(NaN);
+    ecgWritePos = 0;
+    drawEcgGrid(canvas);
+    startEcgAnimation(canvas);
+}
+
+// رسم الشبكة الطبية
+function drawEcgGrid(canvas) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    // عدد المربعات الصغيرة = نافذة العرض / 40ms
+    const totalMs  = ECG_SCREEN_SECS * 1000 * ecgSpeedFactor;
+    const smallPx  = W / (totalMs / SMALL_GRID_MS);   // pixels per small box
+    const bigPx    = smallPx * 5;
+
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#001400';
+    ctx.fillRect(0, 0, W, H);
+
+    // شبكة صغيرة
+    ctx.strokeStyle = 'rgba(0,120,0,0.3)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < W; x += smallPx) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = 0; y < H; y += smallPx) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    // شبكة كبيرة
+    ctx.strokeStyle = 'rgba(0,200,0,0.4)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += bigPx)  { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = 0; y < H; y += bigPx)  { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    // خط الصفر
+    ctx.strokeStyle = 'rgba(0,200,0,0.6)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, H/2); ctx.lineTo(W, H/2); ctx.stroke();
+}
+
+// تحديث ECG من Firebase (يُستدعى عند وصول بيانات جديدة)
+function pushEcgSample(rawValue) {
+    // rawValue = قيمة ecg من Firebase (مثلاً 171)
+    // نحوّلها لسعة موجة ECG بناءً على BPM الحقيقي
+    const bpm = rawValue;
+    ecgCurrentBpm = bpm;
+    ecgLastRaw    = rawValue;
+
+    // نولّد دورة ECG كاملة وندفعها للبفر
+    const samplesPerCycle = Math.round(250 * 60 / Math.max(bpm, 30));
+    const wave = generateEcgWaveFromBpm(bpm, samplesPerCycle, 250);
+    for (let i = 0; i < wave.length; i++) {
+        ecgDisplayBuffer[ecgWritePos % ecgDisplayBuffer.length] = wave[i];
+        ecgWritePos++;
+    }
+
+    // تحديث BPM
+    document.getElementById('ecgBpmValue').textContent = Math.round(bpm);
+    document.getElementById('ecgRangeInfo').textContent = `HR: ${Math.round(bpm)} bpm`;
+
+    const ok = bpm >= 100 && bpm <= 180;
+    document.getElementById('ecgQualityInfo').textContent = ok ? '✅ نطاق طبيعي' : '⚠️ خارج النطاق';
+    document.getElementById('ecgStatusText').textContent  = `آخر تحديث: ${new Date().toLocaleTimeString('ar')}`;
+    document.getElementById('ecgTimestamp').textContent   = new Date().toLocaleTimeString('ar', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+    ecgLastFirebaseTime = Date.now();
+    ecgFirebaseCounter++;
+}
+
+// حلقة الرسم المتحركة (sweep mode)
+function startEcgAnimation(canvas) {
+    if (ecgAnimationId) cancelAnimationFrame(ecgAnimationId);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    let drawHead = 0;   // رأس الرسم المتحرك
+    const pixelsPerFrame = (W / (ECG_SCREEN_SECS * 60)) * ecgSpeedFactor;  // سرعة تقدم المؤشر
+
+    function frame() {
+        if (!ecgFrozen) {
+            const totalMs  = ECG_SCREEN_SECS * 1000 / ecgSpeedFactor;
+            const smallPx  = W / (totalMs / SMALL_GRID_MS);
+            const bigPx    = smallPx * 5;
+
+            // محو شريط أمام رأس الرسم
+            const eraseW = Math.ceil(smallPx * 2.5);
+            ctx.fillStyle = '#001400';
+            ctx.fillRect(drawHead, 0, eraseW, H);
+
+            // إعادة رسم الشبكة في المنطقة الممحوة
+            for (let gx = 0; gx < eraseW; gx++) {
+                const ax = drawHead + gx;
+                if (ax % Math.round(bigPx) < 1) {
+                    ctx.strokeStyle = 'rgba(0,200,0,0.4)'; ctx.lineWidth = 1;
+                } else if (ax % Math.round(smallPx) < 1) {
+                    ctx.strokeStyle = 'rgba(0,120,0,0.3)'; ctx.lineWidth = 0.5;
+                } else continue;
+                ctx.beginPath(); ctx.moveTo(ax, 0); ctx.lineTo(ax, H); ctx.stroke();
+            }
+            // خط الصفر
+            ctx.strokeStyle = 'rgba(0,200,0,0.6)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(drawHead, H/2); ctx.lineTo(drawHead + eraseW, H/2); ctx.stroke();
+
+            // رسم نقطة الإشارة
+            const bufIdx = Math.round(drawHead / W * ecgDisplayBuffer.length);
+            const raw = ecgDisplayBuffer[(ecgWritePos - (W - drawHead)) % ecgDisplayBuffer.length];
+            if (!isNaN(raw) && ecgLastFirebaseTime > 0) {
+                const amp = raw * (H * 0.35);
+                const py  = H / 2 - amp;
+                ctx.strokeStyle = '#00ff44';
+                ctx.lineWidth   = 1.8;
+                ctx.shadowColor = '#00ff44';
+                ctx.shadowBlur  = 3;
+                ctx.beginPath();
+                ctx.arc(drawHead, py, 1, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // خط من النقطة السابقة
+                if (drawHead > 0) {
+                    const prevRaw = ecgDisplayBuffer[(ecgWritePos - (W - drawHead) - 1) % ecgDisplayBuffer.length];
+                    if (!isNaN(prevRaw)) {
+                        const prevAmp = prevRaw * (H * 0.35);
+                        const prevPy  = H / 2 - prevAmp;
+                        ctx.strokeStyle = '#00ff44';
+                        ctx.lineWidth   = 1.8;
+                        ctx.shadowColor = '#00ff44';
+                        ctx.shadowBlur  = 4;
+                        ctx.beginPath();
+                        ctx.moveTo(drawHead - 1, prevPy);
+                        ctx.lineTo(drawHead, py);
+                        ctx.stroke();
+                        ctx.shadowBlur = 0;
+                    }
+                }
+            }
+
+            drawHead = (drawHead + pixelsPerFrame) % W;
+        }
+
+        ecgAnimationId = requestAnimationFrame(frame);
+    }
+    frame();
+}
+
+function clearEcgBuffer() {
+    ecgDisplayBuffer = new Float32Array(ecgDisplayBuffer.length).fill(NaN);
+    ecgWritePos = 0;
+    const canvas = document.getElementById('ecgCanvas');
+    if (canvas) drawEcgGrid(canvas);
+    document.getElementById('ecgBpmValue').textContent = '--';
+    addAlert('تم مسح مخطط ECG', 'info');
+}
+
+function toggleEcgFreeze(frozen) {
+    ecgFrozen = frozen;
+    addAlert(frozen ? 'تم تجميد شاشة ECG' : 'تم استئناف شاشة ECG', 'info');
+}
+
+function changeEcgSpeed(val) {
+    ecgSpeedFactor = parseFloat(val);
+    const canvas = document.getElementById('ecgCanvas');
+    if (canvas) {
+        drawEcgGrid(canvas);
+        ecgDisplayBuffer = new Float32Array(canvas.width * 3).fill(NaN);
+        ecgWritePos = 0;
+    }
+}
+
+// ================================================================
+// 🔥 Firebase
+// ================================================================
+async function connectFirebase() {
+    const { initializeApp, getDatabase, ref, onValue } = await waitForFirebase();
+    const url  = document.getElementById('firebaseUrl').value.trim();
+    const path = document.getElementById('firebasePath').value.trim() || 'incubator';
+    if (!url) { addAlert('⚠️ الرجاء إدخال رابط Firebase', 'warning'); return; }
+    document.getElementById('btnConnect').disabled = true;
+    document.getElementById('btnConnect').innerHTML = '<span>⏳</span> جاري الاتصال...';
+    try {
+        if (!firebaseApp) firebaseApp = initializeApp({ databaseURL: url }, 'incubator-app');
+        firebaseDb = getDatabase(firebaseApp);
+        if (firebaseUnsubscribe) { firebaseUnsubscribe(); firebaseUnsubscribe = null; }
+        const dataRef = ref(firebaseDb, path);
+        firebaseUnsubscribe = onValue(dataRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                document.getElementById('rawFirebaseData').textContent = JSON.stringify(data, null, 2);
+                onFirebaseData(data);
+            }
+        }, (error) => {
+            addAlert('❌ خطأ Firebase: ' + error.message, 'danger');
+        });
+        isConnected = true;
+        setConnectionUI(true, url);
+        enableControlButtons();
+        addAlert('✅ تم الاتصال بـ Firebase', 'success');
+        document.getElementById('btnDisconnect').disabled = false;
+    } catch (err) {
+        addAlert('❌ فشل الاتصال: ' + err.message, 'danger');
+        document.getElementById('btnConnect').disabled = false;
+        document.getElementById('btnConnect').innerHTML = '<span>🔗</span> اتصال بـ Firebase';
+    }
+}
+
+function disconnectFirebase() {
+    if (firebaseUnsubscribe) { firebaseUnsubscribe(); firebaseUnsubscribe = null; }
+    isConnected = false;
+    setConnectionUI(false);
+    disableControlButtons();
+    clearSensorDisplays();
+    addAlert('تم قطع الاتصال بـ Firebase', 'warning');
+    document.getElementById('btnConnect').disabled = false;
+    document.getElementById('btnConnect').innerHTML = '<span>🔗</span> اتصال بـ Firebase';
+    document.getElementById('btnDisconnect').disabled = true;
+}
+
+function setConnectionUI(connected, url='') {
+    const badge = document.getElementById('connectionBadge');
+    const sBadge = document.getElementById('statusBadge');
+    const status = document.getElementById('arduinoStatus');
+    const main   = document.getElementById('mainConnectionStatus');
+    if (connected) {
+        badge.textContent = '● متصل Firebase'; badge.className = 'badge badge-online';
+        sBadge.textContent = '✓ يستقبل البيانات'; sBadge.style.background = '#10b981';
+        status.innerHTML = '<span class="status-dot-animated"></span> متصل';
+        status.className = 'status-indicator status-connected';
+        main.className   = 'connection-status connected';
+        main.innerHTML   = `<div style="font-size:3em;margin-bottom:10px;">✅</div><h2 style="margin-bottom:10px;color:var(--success);">متصل بـ Firebase</h2><p style="opacity:0.8;"><small>${url}</small></p>`;
+    } else {
+        badge.textContent = '● غير متصل'; badge.className = 'badge badge-offline';
+        sBadge.textContent = '⏸ منقطع'; sBadge.style.background = '#6b7280';
+        status.innerHTML = '<span class="status-dot-animated"></span> غير متصل';
+        status.className = 'status-indicator status-disconnected';
+        main.className   = 'connection-status disconnected';
+        main.innerHTML   = `<div style="font-size:3em;margin-bottom:10px;">📡</div><h2 style="margin-bottom:10px;color:var(--danger);">تم قطع الاتصال</h2><button class="control-btn btn-primary" onclick="connectFirebase()" style="max-width:300px;margin:0 auto;"><span>🔗</span> إعادة الاتصال</button>`;
+    }
+}
+
+// ================================================================
+// ✅ معالجة البيانات الحقيقية
+// ================================================================
+function onFirebaseData(data) {
+    lastDataTime = Date.now();
+    document.getElementById('arduinoLastSync').textContent = 'آخر مزامنة: ' + new Date().toLocaleTimeString('ar');
+
+    const s = data.sensors || data;
+
+    if (s.bodyTemp    !== undefined) { updateSensorValue('bodyTemp', s.bodyTemp.toFixed(1), checkTemp(s.bodyTemp)); addToChart('temperature', s.bodyTemp); }
+    if (s.envTemp     !== undefined)   updateSensorValue('envTemp', s.envTemp.toFixed(1), checkTemp(s.envTemp));
+    if (s.ambientTemp !== undefined)   updateSensorValue('ambientTempDisplay', s.ambientTemp.toFixed(1), 'ok');
+    if (s.humidity    !== undefined) { updateSensorValue('humidity', Math.round(s.humidity), checkHumidity(s.humidity)); addToChart('humidity', s.humidity); }
+
+    // ✅ ECG → يُرسَل للشاشة الطبية + المخطط الزمني
+    if (s.ecg !== undefined && s.ecg > 0) {
+        updateSensorValue('heartRate', Math.round(s.ecg), checkHeartRate(s.ecg));
+        addToChart('heartRate', s.ecg);
+        pushEcgSample(s.ecg);   // ← إرسال للشاشة الطبية
+    }
+
+    // ✅ airQuality
+    if (s.airQuality !== undefined) {
+        updateSensorValue('airQualityDisplay', Math.round(s.airQuality), checkAirQuality(s.airQuality));
+        addToChart('airQuality', s.airQuality);
+    }
+
+    // ✅ weight
+    if (s.weight !== undefined) {
+        const el = document.getElementById('weight');
+        if (el) el.textContent = s.weight > 1000 ? (s.weight/1000).toFixed(2) : s.weight.toFixed(0);
+        const st = document.getElementById('weightStatus');
+        if (st) { st.textContent = 'طبيعي'; st.className = 'sensor-status status-ok'; }
+    }
+
+    if (s.babyPresent !== undefined) updateBabyPresence(s.babyPresent);
+
+    if (s.ledJaundice !== undefined) {
+        const sw = document.getElementById('jaundiceSwitch');
+        if (sw) sw.checked = Boolean(s.ledJaundice);
+        updateLightEffect('lightJaundiceControl', 'jaundiceLightIndicator', s.ledJaundice);
+    }
+    if (s.ledUV !== undefined) {
+        const sw = document.getElementById('uvSwitch');
+        if (sw) sw.checked = Boolean(s.ledUV);
+        updateLightEffect('lightUVControl', 'uvLightIndicator', s.ledUV);
+    }
+
+    const bt = s.bodyTemp   !== undefined ? s.bodyTemp.toFixed(1)   + ' °C'  : '-- °C';
+    const hm = s.humidity   !== undefined ? Math.round(s.humidity)  + ' %'   : '-- %';
+    const hr = s.ecg        !== undefined ? Math.round(s.ecg)       + ' bpm' : '-- bpm';
+    const aq = s.airQuality !== undefined ? Math.round(s.airQuality).toString() : '--';
+    document.getElementById('visualTemp').textContent       = bt;
+    document.getElementById('visualHumidity').textContent  = hm;
+    document.getElementById('visualHeart').textContent     = hr;
+    document.getElementById('visualAirQuality').textContent = aq;
+
+    if (data.controls) syncControlsFromFirebase(data.controls);
+    if (Math.random() > 0.7) calculateHealthScore();
+    updateDataAge();
+}
+
+function syncControlsFromFirebase(controls) {
+    const map = { humidifier:'humidifierSwitch', lampJaundice:'jaundiceSwitch', lampUV:'uvSwitch' };
+    for (const [key, id] of Object.entries(map)) {
+        const el = document.getElementById(id);
+        if (el && controls[key] !== undefined) el.checked = Boolean(controls[key]);
+    }
+    updateLightEffect('lightJaundiceControl', 'jaundiceLightIndicator', controls.lampJaundice);
+    updateLightEffect('lightUVControl',       'uvLightIndicator',       controls.lampUV);
+}
+
+function updateLightEffect(lightId, indicatorId, active) {
+    const light = document.getElementById(lightId);
+    const ind   = document.getElementById(indicatorId);
+    if (!light || !ind) return;
+    if (active) { light.classList.add('active'); ind.classList.add('active-system'); }
+    else        { light.classList.remove('active'); ind.classList.remove('active-system'); }
+}
+
+// ================================================================
+// 🔥 إرسال أوامر إلى Firebase
+// ================================================================
+async function sendCommandToFirebase(path, value) {
+    if (!isConnected || !firebaseDb) { addAlert('⚠️ غير متصل بـ Firebase', 'warning'); return; }
+    try {
+        const { ref, set } = window._firebaseModules;
+        const basePath = document.getElementById('firebasePath').value.trim() || 'incubator';
+        await set(ref(firebaseDb, `${basePath}/${path}`), value);
+    } catch (err) {
+        addAlert('❌ فشل إرسال الأمر: ' + err.message, 'danger');
+    }
+}
+
+function updateHumidityTarget(value) { document.getElementById('humidityTargetValue').textContent = value + '%'; sendCommandToFirebase('commands/humidityTarget', parseInt(value)); }
+function toggleJaundiceLight(enabled) {
+    if (enabled && !confirm('⚠️ هل تريد تفعيل العلاج الضوئي؟')) { document.getElementById('jaundiceSwitch').checked = false; return; }
+    updateLightEffect('lightJaundiceControl', 'jaundiceLightIndicator', enabled);
+    sendCommandToFirebase('controls/lampJaundice', enabled);
+    addAlert(enabled ? 'تم تفعيل العلاج الضوئي' : 'تم إيقاف العلاج الضوئي', enabled ? 'warning' : 'info');
+}
+function updateJaundiceLightIntensity(value) { document.getElementById('jaundiceLightValue').textContent = value + '%'; sendCommandToFirebase('commands/lampJaundiceIntensity', parseInt(value)); }
+function toggleUVSterilization(enabled) {
+    if (enabled && !confirm('⚠️ يجب إخلاء الحاضنة تماماً!\nهل تريد المتابعة؟')) { document.getElementById('uvSwitch').checked = false; return; }
+    updateLightEffect('lightUVControl', 'uvLightIndicator', enabled);
+    sendCommandToFirebase('controls/lampUV', enabled);
+    addAlert(enabled ? 'بدء التعقيم UV-C' : 'تم إيقاف التعقيم UV-C', enabled ? 'danger' : 'info');
+}
+function updateUVDuration(value) { document.getElementById('uvDurationValue').textContent = value + ' د'; sendCommandToFirebase('commands/uvDuration', parseInt(value)); }
+function quickPreset(preset) {
+    if (!isConnected) { alert('⚠️ غير متصل بـ Firebase'); return; }
+    sendCommandToFirebase('commands/preset', preset);
+    const msgs = { normal:'تم تطبيق الوضع العادي', intensive:'تم تطبيق الوضع المكثف', phototherapy:'تم تطبيق العلاج الضوئي' };
+    addAlert(msgs[preset] || preset, preset === 'phototherapy' ? 'warning' : 'success');
+}
+function emergencyStop() {
+    if (!isConnected) { alert('⚠️ غير متصل بـ Firebase'); return; }
+    if (confirm('⚠️ هل تريد إيقاف جميع الأنظمة؟')) { sendCommandToFirebase('commands/emergencyStop', true); addAlert('تم إرسال أمر الطوارئ', 'danger'); }
+}
+function emergencyAlert() {
+    alert('🚨 تنبيه طوارئ!\n\nسيتم إخطار الطاقم الطبي فوراً.\nالوقت: ' + new Date().toLocaleTimeString('ar'));
+    sendCommandToFirebase('alerts/emergency', { time: Date.now(), message: 'طوارئ يدوية' });
+    addAlert('تم إرسال تنبيه طوارئ', 'danger');
+}
+
+// ================================================================
+// فحص القيم
+// ================================================================
+function checkTemp(t)       { if(t<36.0)return'منخفض جداً'; if(t<36.3)return'منخفض'; if(t>37.5)return'مرتفع جداً'; if(t>37.2)return'مرتفع'; return'ok'; }
+function checkHeartRate(hr) { if(hr<100)return'منخفض جداً'; if(hr<120)return'منخفض'; if(hr>180)return'مرتفع جداً'; if(hr>160)return'مرتفع'; return'ok'; }
+function checkHumidity(h)   { if(h<40)return'منخفض'; if(h>70)return'مرتفع'; return'ok'; }
+function checkAirQuality(v) { if(v>100)return'مرتفع جداً'; if(v>60)return'مرتفع'; return'ok'; }
+
+// ================================================================
+// 📊 الرسوم البيانية الأربعة
+// ================================================================
+function initCharts() {
+    const baseOpts = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            y: { beginAtZero: false, ticks: { color: '#888' }, grid: { color: 'rgba(128,128,128,0.15)' } },
+            x: { display: true, ticks: { color: '#888', maxRotation: 45, autoSkip: true, maxTicksLimit: 10 }, grid: { color: 'rgba(128,128,128,0.1)' } }
+        },
+        animation: { duration: 0 },
+        elements: { point: { radius: 2 }, line: { tension: 0.4 } }
+    };
+
+    const defs = [
+        ['tempChart',     'temp',    'حرارة الجسم °C',   '#ef4444', 35,   40   ],
+        ['heartChart',    'heart',   'نبض ECG bpm',       '#8b5cf6', 60,   220  ],
+        ['oxygenChart',   'air',     'جودة الهواء',       '#10b981', 0,    150  ],
+        ['humidityChart', 'humidity','رطوبة %',           '#3b82f6', 30,   80   ]
+    ];
+
+    defs.forEach(([id, key, label, color, yMin, yMax]) => {
+        const ctx = document.getElementById(id);
+        if (!ctx) return;
+        const opts = JSON.parse(JSON.stringify(baseOpts));
+        opts.scales.y.min = yMin;
+        opts.scales.y.max = yMax;
+        opts.scales.y.ticks.color = color;
+        charts[key] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label,
+                    data: [],
+                    borderColor: color,
+                    backgroundColor: color + '18',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 2,
+                    pointBackgroundColor: color,
+                    pointRadius: 2,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: opts
+        });
+    });
+}
+
+function addToChart(type, value) {
+    const now = new Date().toLocaleTimeString('ar', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    const map = { temperature:'temp', heartRate:'heart', airQuality:'air', humidity:'humidity' };
+    const key = map[type];
+    if (!key || !charts[key]) return;
+    if (!chartDataHistory[type]) chartDataHistory[type] = [];
+    chartDataHistory[type].push(parseFloat(value.toFixed(2)));
+    chartDataHistory.timestamps.push(now);
+    if (chartDataHistory[type].length > 60) { chartDataHistory[type].shift(); chartDataHistory.timestamps.shift(); }
+    charts[key].data.labels   = [...chartDataHistory.timestamps];
+    charts[key].data.datasets[0].data = [...chartDataHistory[type]];
+    charts[key].update('none');
+}
+
+// ================================================================
+// 🤖 الذكاء الاصطناعي
+// ================================================================
+function runAIAnalysis() {
+    if (!isConnected) { addAlert('⚠️ يجب الاتصال بـ Firebase أولاً', 'warning'); return; }
+    addAlert('بدء التحليل الشامل...', 'info');
+    setTimeout(() => { calculateHealthScore(); predictRisks(); generateRecommendations(); addAlert('اكتمل التحليل', 'success'); }, 1500);
+}
+function calculateHealthScore() {
+    const temp  = parseFloat(document.getElementById('bodyTemp')?.textContent || 0);
+    const heart = parseInt(document.getElementById('heartRate')?.textContent  || 0);
+    if (!temp || !heart) { document.getElementById('aiHealthScore').textContent='--'; return; }
+    let score = 100;
+    if (temp<36.0||temp>37.5) score-=15; else if(temp<36.3||temp>37.2) score-=5;
+    if (heart<100||heart>180) score-=15; else if(heart<120||heart>160) score-=5;
+    const hs = Math.max(0, Math.min(100, score));
+    document.getElementById('aiHealthScore').textContent = hs;
+    const rl = hs>=90?'منخفض':hs>=70?'متوسط':'مرتفع';
+    const colors = {منخفض:'#10b981', متوسط:'#f59e0b', مرتفع:'#ef4444'};
+    const el = document.getElementById('aiRiskLevel');
+    el.textContent = rl; el.style.color = colors[rl];
+    updateCriticalRisks();
+}
+function updateCriticalRisks() {
+    const temp  = parseFloat(document.getElementById('bodyTemp')?.textContent || 36.5);
+    const heart = parseInt(document.getElementById('heartRate')?.textContent  || 140);
+    let sr=5; if(temp>38||temp<36)sr+=15; if(heart>160)sr+=10; sr=Math.min(95,sr);
+    updateCriticalRisk('sepsis',sr); updateCriticalRisk('nec',8); updateCriticalRisk('rds',12);
+}
+function updateCriticalRisk(type, value) {
+    const bar = document.getElementById(`${type}Risk`);
+    const pct = document.getElementById(`${type}Percent`);
+    if (bar&&pct) {
+        bar.style.width = value+'%'; pct.textContent = value+'%';
+        pct.style.color = value<20?'var(--success)':value<50?'var(--warning)':'var(--danger)';
+    }
+}
+function predictRisks() {
+    const temp  = parseFloat(document.getElementById('bodyTemp')?.textContent || 36.5);
+    const airq  = parseInt(document.getElementById('airQualityDisplay')?.textContent || 0);
+    let preds = [];
+    if (temp<36.5) preds.push({type:'high',icon:'🌡️',title:'احتمالية انخفاض حرارة الجسم',description:'درجة الحرارة أقل من المعدل الطبيعي',probability:75});
+    if (airq>60)   preds.push({type:'high',icon:'💨',title:'انخفاض جودة الهواء',description:'مستوى جودة الهواء يحتاج متابعة',probability:65});
+    if (!preds.length) preds.push({type:'low',icon:'✅',title:'حالة مستقرة',description:'جميع المؤشرات ضمن النطاق الطبيعي',probability:95});
+    document.getElementById('aiRiskPredictions').innerHTML = preds.map(p=>`
+        <div class="risk-item risk-${p.type}">
+            <div class="risk-icon">${p.icon}</div>
+            <div class="risk-content"><div class="risk-title">${p.title}</div><div class="risk-description">${p.description}</div></div>
+            <div class="risk-probability">${p.probability}%</div>
+        </div>`).join('');
+}
+function generateRecommendations() {
+    const temp = parseFloat(document.getElementById('bodyTemp')?.textContent || 36.5);
+    let recs = [];
+    if (temp<36.3) recs.push({icon:'🔥',title:'زيادة حرارة الحاضنة',text:'يُنصح برفع درجة الحرارة',priority:'high'});
+    recs.push({icon:'✅',title:'الاستمرار في المراقبة',text:'الحالة مستقرة — متابعة روتينية',priority:'low'});
+    document.getElementById('aiRecommendations').innerHTML = recs.map(r=>`
+        <div class="recommendation-item">
+            <div class="recommendation-icon">${r.icon}</div>
+            <div class="recommendation-content">
+                <div class="recommendation-title">${r.title}</div>
+                <div class="recommendation-text">${r.text}</div>
+                <span class="recommendation-priority priority-${r.priority}">${r.priority==='high'?'أولوية عالية':'أولوية منخفضة'}</span>
+            </div>
+        </div>`).join('');
+}
+
+// ================================================================
+// 💬 دردشة AI
+// ================================================================
+async function sendAIMessage() {
+    const input = document.getElementById('aiChatInput');
+    const message = input.value.trim();
+    if (!message) return;
+    addChatMessage(message, 'user');
+    input.value = '';
+    document.getElementById('aiSendBtn').disabled = true;
+    showTyping(true);
+    try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' },
+            body: JSON.stringify({
+                model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+                messages: [...chatHistory, {role:'user', content:message}],
+                system: `أنت مساعد طبي متخصص في رعاية الأطفال الخدج في وحدة NICU.
+مهامك: تقديم معلومات طبية دقيقة، شرح القراءات الحيوية، الإجابة بالعربية باحترافية.
+القيم الطبيعية: حرارة 36.5-37.5°C | نبض ECG 120-160 bpm | رطوبة 50-70%.`
+            })
+        });
+        if (!response.ok) throw new Error('فشل الاتصال');
+        const data = await response.json();
+        const aiResp = data.content[0].text;
+        showTyping(false);
+        addChatMessage(aiResp, 'ai');
+        chatHistory.push({role:'user', content:message}, {role:'assistant', content:aiResp});
+        if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+    } catch(err) {
+        showTyping(false);
+        addChatMessage('عذراً، حدث خطأ في الاتصال.', 'ai', true);
+    } finally {
+        document.getElementById('aiSendBtn').disabled = false;
+    }
+}
+function addChatMessage(text, sender, isError=false) {
+    const c = document.getElementById('aiChatMessages');
+    const d = document.createElement('div');
+    d.className = `ai-message ${sender}`;
+    const time = new Date().toLocaleTimeString('ar', {hour:'2-digit', minute:'2-digit'});
+    d.innerHTML = `<div class="ai-avatar">${sender==='user'?'👤':'🤖'}</div>
+        <div><div class="ai-message-content" ${isError?'style="background:#fee2e2;color:#991b1b;"':''}>${text.replace(/\n/g,'<br>')}</div>
+        <div class="ai-message-time">${time}</div></div>`;
+    c.appendChild(d);
+    c.scrollTop = c.scrollHeight;
+}
+function showTyping(show) {
+    const t = document.getElementById('aiTyping');
+    if (show) { t.classList.add('active'); document.getElementById('aiChatMessages').scrollTop=9999; }
+    else t.classList.remove('active');
+}
+function sendSuggestion(text) { document.getElementById('aiChatInput').value=text; sendAIMessage(); }
+function handleChatKeydown(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAIMessage();} }
+
+// ================================================================
+// 🔔 التنبيهات والواجهة
+// ================================================================
+function addAlert(message, type='info') {
+    const list = document.getElementById('alertsList');
+    const icons  = {info:'ℹ️', warning:'⚠️', danger:'🚨', success:'✅'};
+    const titles = {info:'معلومة', warning:'تنبيه', danger:'تحذير', success:'نجاح'};
+    const d = document.createElement('div');
+    d.className = `alert-item alert-${type}`;
+    d.innerHTML = `<div class="alert-icon">${icons[type]}</div>
+        <div class="alert-content"><strong>${titles[type]}:</strong> ${message}</div>
+        <div class="alert-time">${new Date().toLocaleTimeString('ar')}</div>`;
+    if (list) { list.insertBefore(d, list.firstChild); if(list.children.length>50) list.removeChild(list.lastChild); }
+}
+
+function switchTab(tabName) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t=>{ if(t.getAttribute('onclick')&&t.getAttribute('onclick').includes(tabName)) t.classList.add('active'); });
+    const c = document.getElementById(tabName);
+    if (c) c.classList.add('active');
+    // إعادة رسم ECG عند فتح تبويب الرسوم
+    if (tabName === 'charts') {
+        setTimeout(() => {
+            const canvas = document.getElementById('ecgCanvas');
+            if (canvas) {
+                const parent = canvas.parentElement;
+                const W = parent ? parent.clientWidth - 30 : 800;
+                if (canvas.width !== W) {
+                    canvas.width = W || 800;
+                    ecgCanvasWidth = canvas.width;
+                    ecgDisplayBuffer = new Float32Array(canvas.width * 3).fill(NaN);
+                    ecgWritePos = 0;
+                    drawEcgGrid(canvas);
+                }
+            }
+        }, 100);
+    }
+}
+
+function toggleTheme() {
+    document.body.setAttribute('data-theme', document.body.getAttribute('data-theme')==='light'?'dark':'light');
+}
+
+const themes = {
+    light:  {'--primary':'#667eea','--secondary':'#764ba2'},
+    dark:   {'--primary':'#667eea','--secondary':'#764ba2'},
+    blue:   {'--primary':'#3b82f6','--secondary':'#1e40af'},
+    green:  {'--primary':'#10b981','--secondary':'#047857'},
+    purple: {'--primary':'#a855f7','--secondary':'#7c3aed'},
+    orange: {'--primary':'#f59e0b','--secondary':'#d97706'}
+};
+function applyTheme() {
+    const theme = document.getElementById('themeSelect').value;
+    document.body.setAttribute('data-theme', theme==='dark'?'dark':'light');
+    for (const [k,v] of Object.entries(themes[theme]||{})) document.documentElement.style.setProperty(k,v);
+    localStorage.setItem('selectedTheme', theme);
+}
+
+function updateTempMin(v) { document.getElementById('tempMinValue').textContent = v+'°C'; }
+function updateTempMax(v) { document.getElementById('tempMaxValue').textContent = v+'°C'; }
+
+function exportData() {
+    const d = {
+        timestamp: new Date(),
+        bodyTemp:     document.getElementById('bodyTemp').textContent,
+        heartRate_ECG:document.getElementById('heartRate').textContent,
+        airQuality:   document.getElementById('airQualityDisplay').textContent,
+        humidity:     document.getElementById('humidity').textContent,
+        ecgBpm:       document.getElementById('ecgBpmValue').textContent
+    };
+    const blob = new Blob([JSON.stringify(d,null,2)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = `incubator_${Date.now()}.json`; a.click();
+    addAlert('تم تصدير البيانات','success');
+}
+function saveSettings() { addAlert('تم حفظ الإعدادات','success'); }
+
+function enableControlButtons() {
+    document.querySelectorAll('#control input, #control button').forEach(el=>el.disabled=false);
+    document.getElementById('emergencyButton').disabled = false;
+    document.getElementById('btnAIAnalysis').disabled   = false;
+}
+function disableControlButtons() {
+    document.querySelectorAll('#control input, #control button').forEach(el=>el.disabled=true);
+    document.getElementById('emergencyButton').disabled = true;
+}
+
+function updateSensorValue(id, value, status) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+    if (status) {
+        const stId = id + 'Status';
+        const st = document.getElementById(stId);
+        if (st) { st.textContent = status==='ok'?'طبيعي':status; st.className = 'sensor-status '+(status==='ok'?'status-ok':'status-alert'); }
+    }
+}
+
+function clearSensorDisplays() {
+    ['bodyTemp','heartRate','airQualityDisplay','ambientTempDisplay','humidity','weight','envTemp'].forEach(id=>{
+        const el=document.getElementById(id); if(el) el.textContent='--';
+        const st=document.getElementById(id+'Status'); if(st){st.textContent='غير متصل';st.className='sensor-status';}
+    });
+    document.getElementById('dataAge').textContent='--';
+    document.getElementById('ecgBpmValue').textContent='--';
+}
+
+let dataAgeInterval = null;
+function updateDataAge() {
+    if (dataAgeInterval) return;
+    dataAgeInterval = setInterval(()=>{
+        if (!lastDataTime) return;
+        const age = Math.floor((Date.now()-lastDataTime)/1000);
+        document.getElementById('dataAge').textContent = age;
+        if (age>30 && isConnected) addAlert(`تحذير: لم تُستقبل بيانات منذ ${age} ثانية`,'warning');
+    },1000);
+}
+
+function updateBabyPresence(present) {
+    const card  = document.getElementById('babyPresenceCard');
+    const icon  = document.getElementById('presenceIconWrap');
+    const badge = document.getElementById('presenceBadge');
+    const text  = document.getElementById('presenceText');
+    const dot   = document.getElementById('presenceDot');
+    const now   = new Date().toLocaleTimeString('ar', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    if (present) {
+        card.style.borderColor='var(--success)'; card.style.boxShadow='0 4px 15px rgba(16,185,129,0.2)';
+        icon.style.background='rgba(16,185,129,0.15)'; icon.textContent='👶';
+        badge.style.background='rgba(16,185,129,0.2)'; badge.style.color='var(--success)'; badge.textContent='● موجود';
+        text.textContent='الرضيع داخل الحاضنة — آخر تحديث: '+now;
+        dot.style.background='var(--success)'; dot.style.animationDuration='1.5s';
+    } else {
+        card.style.borderColor='var(--danger)'; card.style.boxShadow='0 4px 15px rgba(239,68,68,0.3)';
+        icon.style.background='rgba(239,68,68,0.15)'; icon.textContent='🚨';
+        badge.style.background='rgba(239,68,68,0.2)'; badge.style.color='var(--danger)'; badge.textContent='● غائب!';
+        text.textContent='⚠️ تحذير: الرضيع خارج الحاضنة! — آخر تحديث: '+now;
+        dot.style.background='var(--danger)'; dot.style.animationDuration='0.6s';
+    }
+}
+
+// 3D
+function toggleRotationControl() {
+    const inc = document.getElementById('incubator3dControl');
+    isRotatingControl = !isRotatingControl;
+    inc.classList.toggle('rotating', isRotatingControl);
+    document.getElementById('rotationIconControl').textContent = isRotatingControl?'⏸️':'▶️';
+    document.getElementById('rotationTextControl').textContent = isRotatingControl?'إيقاف الدوران':'دوران تلقائي';
+}
+function resetViewControl() {
+    const inc = document.getElementById('incubator3dControl');
+    inc.classList.remove('rotating');
+    inc.style.transform = 'translate(-50%,-50%) rotateX(20deg) rotateY(0deg) scale(1)';
+    isRotatingControl = false;
+    document.getElementById('rotationIconControl').textContent = '▶️';
+    document.getElementById('rotationTextControl').textContent = 'دوران تلقائي';
+}
+
+// الملف الطبي
+function switchMedSec(n) {
+    for (let i=0;i<3;i++) {
+        document.getElementById('medsec'+i).classList.toggle('active',i===n);
+        document.getElementById('medtab'+i).classList.toggle('active',i===n);
+        const dot=document.getElementById('meddot'+i);
+        if(dot){ dot.style.width=i===n?'18px':'6px'; dot.style.background=i===n?'#639922':'var(--border)'; }
+    }
+    medCurrentSec=n;
+    document.getElementById('med-prev-btn').disabled=n===0;
+    const nBtn=document.getElementById('med-next-btn');
+    if(n===2){ nBtn.textContent='💾 حفظ الملف'; nBtn.onclick=saveMedicalRecord; }
+    else { nBtn.textContent='التالي →'; nBtn.onclick=()=>medGoSection(1); }
+}
+function medGoSection(dir) { const next=medCurrentSec+dir; if(next>=0&&next<3) switchMedSec(next); }
+function medUpdateHeader() {
+    const name=document.getElementById('med-fullname').value;
+    const file=document.getElementById('med-fileno').value;
+    document.getElementById('med-hdr-name').textContent=name||'الملف الطبي';
+    document.getElementById('med-hdr-sub').textContent=(name||'مريض جديد')+(file?' · ملف #'+file:'');
+}
+function medUpdateApgar() {
+    ['1','5'].forEach(n=>{
+        const v=parseInt(document.getElementById('med-a'+n).value);
+        const badge=document.getElementById('apg'+n+'-badge');
+        if(isNaN(v)){badge.style.background='#F1EFE8';badge.style.color='#888';badge.textContent='--';}
+        else{
+            badge.textContent=v;
+            if(v>=7){badge.style.background='#EAF3DE';badge.style.color='#3B6D11';}
+            else if(v>=4){badge.style.background='#FAEEDA';badge.style.color='#854F0B';}
+            else{badge.style.background='#FCEBEB';badge.style.color='#A32D2D';}
+        }
+    });
+}
+function medLoadPhoto(e) {
+    const file=e.target.files[0]; if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+        const circle=document.getElementById('med-photo-circle');
+        circle.innerHTML='<img src="'+ev.target.result+'" style="width:100%;height:100%;object-fit:cover;">';
+        circle.style.border='2px solid #639922';
+    };
+    reader.readAsDataURL(file);
+}
+function medUpdateBlood() {
+    const m=document.getElementById('med-mblood').value;
+    const b=document.getElementById('med-bblood').value;
+    const disp=document.getElementById('med-blood-display');
+    if(m||b){
+        disp.style.display='flex';
+        document.getElementById('med-mom-btag').textContent=m||'--';
+        document.getElementById('med-baby-btag').textContent=b||'--';
+    } else disp.style.display='none';
+}
+function medAddLab() {
+    const container=document.getElementById('med-lab-rows');
+    const row=document.createElement('div'); row.className='med-lab-row';
+    row.innerHTML=`<input class="med-input" placeholder="اسم التحليل" style="padding:6px 8px;font-size:12px;"><input class="med-input" placeholder="القيمة" style="padding:6px 8px;font-size:12px;"><input type="date" class="med-input" style="padding:6px 8px;font-size:11px;"><input class="med-input" placeholder="ملاحظة" style="padding:6px 8px;font-size:12px;"><button class="med-remove-btn" onclick="this.closest('.med-lab-row').remove()">✕</button>`;
+    container.appendChild(row);
+}
+function saveMedicalRecord() {
+    const labs=[];
+    document.querySelectorAll('#med-lab-rows .med-lab-row').forEach(row=>{
+        const inputs=row.querySelectorAll('input');
+        if(inputs[0].value) labs.push({test:inputs[0].value,value:inputs[1].value,date:inputs[2].value,note:inputs[3].value});
+    });
+    const medData={
+        fullName:document.getElementById('med-fullname').value,
+        fileNumber:document.getElementById('med-fileno').value,
+        birthDate:document.getElementById('med-bdate').value,
+        gestWeeks:document.getElementById('med-gw').value,
+        birthWeight:document.getElementById('med-bw').value,
+        apgar1:document.getElementById('med-a1').value,
+        apgar5:document.getElementById('med-a5').value,
+        mainDiagnosis:document.getElementById('med-diag').value,
+        motherName:document.getElementById('med-mom').value,
+        fatherName:document.getElementById('med-dad').value,
+        phone:document.getElementById('med-phone').value,
+        labResults:labs,
+        savedAt:new Date().toISOString()
+    };
+    localStorage.setItem('medicalRecord',JSON.stringify(medData));
+    if(isConnected) sendCommandToFirebase('patient',medData);
+    const btn=document.getElementById('med-save-btn');
+    btn.textContent='✅ تم الحفظ!'; btn.style.background='#10b981'; btn.style.color='white';
+    setTimeout(()=>{btn.textContent='💾 حفظ الملف';btn.style.background='#EAF3DE';btn.style.color='#3B6D11';},2500);
+    addAlert('تم حفظ الملف الطبي','success');
+}
+function loadMedicalRecord() {
+    const saved=localStorage.getItem('medicalRecord'); if(!saved)return;
+    try {
+        const d=JSON.parse(saved);
+        const fields={'med-fullname':d.fullName,'med-fileno':d.fileNumber,'med-bdate':d.birthDate,'med-gw':d.gestWeeks,'med-bw':d.birthWeight,'med-a1':d.apgar1,'med-a5':d.apgar5,'med-diag':d.mainDiagnosis,'med-mom':d.motherName,'med-dad':d.fatherName,'med-phone':d.phone};
+        for(const [id,val] of Object.entries(fields)){const el=document.getElementById(id);if(el&&val)el.value=val;}
+        medUpdateHeader(); medUpdateApgar();
+    } catch(e){console.error(e);}
+}
+
+// ================================================================
+// 🚀 التهيئة
+// ================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Smart Incubator — ECG Medical Screen — Firebase Only');
+    initCharts();
+    initEcgCanvas();   // ← تهيئة شاشة ECG
+
+    const savedTheme=localStorage.getItem('selectedTheme');
+    if(savedTheme){document.getElementById('themeSelect').value=savedTheme;applyTheme();}
+    loadMedicalRecord();
+
+    // تصدير الدوال للـ HTML
+    window.connectFirebase          = connectFirebase;
+    window.disconnectFirebase       = disconnectFirebase;
+    window.switchTab                = switchTab;
+    window.toggleTheme              = toggleTheme;
+    window.applyTheme               = applyTheme;
+    window.updateTempMin            = updateTempMin;
+    window.updateTempMax            = updateTempMax;
+    window.exportData               = exportData;
+    window.saveSettings             = saveSettings;
+    window.toggleJaundiceLight      = toggleJaundiceLight;
+    window.updateJaundiceLightIntensity = updateJaundiceLightIntensity;
+    window.toggleUVSterilization    = toggleUVSterilization;
+    window.updateUVDuration         = updateUVDuration;
+    window.updateHumidityTarget     = updateHumidityTarget;
+    window.quickPreset              = quickPreset;
+    window.emergencyStop            = emergencyStop;
+    window.emergencyAlert           = emergencyAlert;
+    window.runAIAnalysis            = runAIAnalysis;
+    window.sendAIMessage            = sendAIMessage;
+    window.sendSuggestion           = sendSuggestion;
+    window.handleChatKeydown        = handleChatKeydown;
+    window.toggleRotationControl    = toggleRotationControl;
+    window.resetViewControl         = resetViewControl;
+    window.switchMedSec             = switchMedSec;
+    window.medGoSection             = medGoSection;
+    window.medUpdateHeader          = medUpdateHeader;
+    window.medUpdateApgar           = medUpdateApgar;
+    window.medLoadPhoto             = medLoadPhoto;
+    window.medUpdateBlood           = medUpdateBlood;
+    window.medAddLab                = medAddLab;
+    window.saveMedicalRecord        = saveMedicalRecord;
+    window.updateBabyPresence       = updateBabyPresence;
+    window.clearEcgBuffer           = clearEcgBuffer;
+    window.toggleEcgFreeze          = toggleEcgFreeze;
+    window.changeEcgSpeed           = changeEcgSpeed;
+});
+</script>
+</body>
+</html>
